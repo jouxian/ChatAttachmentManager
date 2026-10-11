@@ -1,0 +1,14 @@
+name: PowerShell static checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  windows-powershell:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse and validate Windows PowerShell sources
+        shell: powershell
+        run: .\tests\StaticChecks.ps1

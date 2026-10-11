@@ -1,0 +1,43 @@
+# Local UI state
+manager_recent.json
+
+# Runtime project state
+_chat_attachment_manager/
+**/_chat_attachment_manager/
+scan/
+preflight/
+partials/
+files/
+
+# Runtime logs / checkpoints
+*.log
+download_state.jsonl
+storage_map.jsonl
+*_status.json
+preflight_*.json
+engine_syntax_error.log
+
+# Generated reports / exports
+all_urls_inventory.csv
+all_urls.txt
+source_files_detected.csv
+attachments_index.csv
+attachments_failed.csv
+urls_skipped_as_nonfiles.csv
+scan_errors.csv
+
+# Temporary / editor / packaging
+*.tmp
+*.part
+*.zip
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+
+# Native launcher build artifacts
+Launcher/payload/
+dist/
+*.exe
+*.part.meta.json
+completion.json

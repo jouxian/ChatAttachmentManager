@@ -1,0 +1,116 @@
+﻿گزارش بررسی UNIVERSAL 1.2
+========================
+
+مبنای تست محتوا
+---------------
+دو فایل Tawk.to ارسالی کاربر به طور کامل از روی فایل‌های واقعی بررسی شدند:
+- Part 001: 500 RECORD
+- Part 002: 400 RECORD
+- مجموع: 900 RECORD
+
+نتیجه بررسی Attachment JSON
+---------------------------
+در دو فایل، 32 خط [ATTACHMENT] پیدا شد:
+- 31 مورد type=file با URL فایل
+- 1 مورد type=contact بدون فایل قابل دانلود
+
+Parser مرجع روی هر 31 attachment نوع file، URL و metadata فایل را استخراج کرد.
+نمونه فرمت‌های واقعی دیده‌شده:
+- image/jpeg / JPG
+- application/pdf / PDF
+- video/mp4 / MP4
+
+نتیجه URL extraction روی Tawk
+-----------------------------
+بعد از dedupe در context هر RECORD:
+- Part 001: 580 URL row
+- Part 002: 702 URL row
+- مجموع: 1282 URL row
+
+از این تعداد، همه 31 attachment صریح [ATTACHMENT] شناسایی شدند.
+URLهای عادی نیز برای HTTP verification در Inventory باقی می‌مانند.
+
+سازگاری با LiveChat قدیمی
+-------------------------
+Parser مرجع روی پنج فایل LiveChat قبلی نیز تست شد:
+- Part 025: 500 chat
+- Part 026: 500 chat
+- Part 027: 500 chat
+- Part 028: 500 chat
+- Part 029: 500 chat
+
+الگوی CHAT # / Chat ID و markerهای [FILE]/... همچنان پشتیبانی می‌شوند.
+
+تست فرمت‌های عمومی
+------------------
+نمونه‌های مصنوعی برای این ورودی‌ها بررسی شدند:
+- JSON
+- CSV
+- LOG
+- HTML
+- XML
+- Markdown
+- فایل بدون پسوند
+
+و برای این URLها نیز extraction تست شد:
+- URL عادی
+- JSON escaped: https:\/\/...
+- Unicode escaped: \u0026 / \u002F
+- HTML escaped: &amp;
+
+تست منطق تشخیص HTTP (بدون شبکه)
+-------------------------------
+Self-Test داخل Downloader این حالات را قبل از اسکن کامل بررسی می‌کند:
+- text/html عادی => NonFile
+- application/pdf بدون پسوند URL => File
+- Content-Disposition: attachment; filename=... => File
+- Attachment صریح image/jpeg => File
+
+بررسی ایستا
+-----------
+- Scanner هیچ Get-ChildItem -Filter *.txt ندارد.
+- وابستگی looksLikeChat حذف شده.
+- وابستگی به LIVECHAT FULL CHAT EXPORT حذف شده.
+- UnknownUrl دیگر قبل از Downloader حذف نمی‌شود.
+- Downloader از Content-Type، Content-Disposition و ResponseUri استفاده می‌کند.
+- assignment به PowerShell $Host وجود ندارد.
+- brace/quote balance هر چهار فایل PowerShell بررسی شد.
+
+محدودیت تست این محیط
+--------------------
+در محیط ساخت این بسته Windows PowerShell 5.1 / Task Scheduler واقعی Windows Server در دسترس نبود.
+بنابراین اجرای end-to-end خود فایل‌های .ps1 روی Windows Server در این محیط انجام نشده است.
+برای کاهش ریسک، Supervisor روی سرور قبل از اسکن کامل:
+1) Syntax parser خود PowerShell را اجرا می‌کند.
+2) Scanner را روی حداکثر 3 فایل واقعی Preflight می‌کند.
+3) Inventory merge را تست می‌کند.
+4) Downloader را بدون درخواست شبکه Dry Self-Test می‌کند.
+
+
+بررسی‌های تکمیلی
+================
+- Preflight به 6000 خط برای هر فایل نمونه محدود شد تا فایل‌های بزرگ دوبار کامل اسکن نشوند.
+- تشخیص محتوایی فایل منبع، magic header باینری‌های رایج را رد می‌کند.
+- URL با پسوند HTML و بدون Content-Type/Content-Disposition به صورت محافظه‌کارانه NonFile محسوب می‌شود.
+
+
+UNIVERSAL 1.2 — بررسی‌های اضافه‌شده
+===================================
+- Get-TargetInfo دیگر پوشه چت را ایجاد نمی‌کند.
+- مسیر .part در _chat_attachment_manager\partials قرار می‌گیرد.
+- Self-Test Downloader هر دو الگوی نام‌گذاری را بدون درخواست شبکه بررسی می‌کند.
+- Self-Test بررسی می‌کند در حالت ChatFolders صرفاً با رزرو مسیر، پوشه چت ساخته نشود.
+- Resume mapping با storage_map.jsonl طراحی شده تا همان فایل در اجرای بعدی همان شماره/مسیر را حفظ کند.
+
+محدودیت محیط تست:
+Windows PowerShell 5.1 و Task Scheduler واقعی Windows Server در این محیط موجود نیست؛
+Syntax Parser و Dry Test نهایی همچنان هنگام اجرا روی خود سرور، قبل از Full Scan اجرا می‌شوند.
+
+
+UNIVERSAL 1.2.2 FASTSCAN — بررسی بهینه‌سازی
+===========================================
+- منطق استخراج URL، AttachmentJson، MarkerContext و طبقه‌بندی HTTP تغییر ماهوی نکرده است؛ فقط اجرای آن‌ها gate شده است.
+- خطوط بدون token «http» دیگر وارد Get-UrlsFromText نمی‌شوند.
+- JSON-escaped URL مانند https:\/\/ همچنان شامل token http است و بررسی می‌شود.
+- Attachment JSON به طور مستقل قبل از URL extractor پردازش می‌شود و URL آن دوباره duplicate نمی‌شود.
+- Cache per-source نسخه‌های قبلی بدون وابستگی به EngineVersion قابل استفاده باقی مانده است.
