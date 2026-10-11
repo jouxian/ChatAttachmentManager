@@ -405,7 +405,7 @@ $title = New-Object System.Windows.Forms.Label
 $title.Text = 'Chat Attachment Manager — UNIVERSAL 1.4.1 GITHUB'
 $title.Font = New-Object System.Drawing.Font('Segoe UI',16,[System.Drawing.FontStyle]::Bold)
 $title.AutoSize = $true
-$title.Location = New-Object System.Drawing.Point(610,20)
+$title.Location = New-Object System.Drawing.Point(30,20)
 $form.Controls.Add($title)
 
 $script:MainStateLabel = New-Object System.Windows.Forms.Label
@@ -472,26 +472,26 @@ $scanBox=New-Object System.Windows.Forms.GroupBox; $scanBox.Text='Resumable Scan
 $script:ScanBar=New-Object System.Windows.Forms.ProgressBar; $script:ScanBar.Location=New-Object System.Drawing.Point(40,32); $script:ScanBar.Size=New-Object System.Drawing.Size(860,20); $scanBox.Controls.Add($script:ScanBar)
 $script:ScanPercent=New-Object System.Windows.Forms.Label; $script:ScanPercent.Text='0%'; $script:ScanPercent.Location=New-Object System.Drawing.Point(905,31); $script:ScanPercent.Size=New-Object System.Drawing.Size(55,22); $scanBox.Controls.Add($script:ScanPercent)
 
-function Add-Pair($parent,[string]$label,[int]$x,[int]$y,[int]$w=200) { $l=New-Object System.Windows.Forms.Label; $l.Text=$label; $l.Location=New-Object System.Drawing.Point($x,$y); $l.Size=New-Object System.Drawing.Size(115,24); $parent.Controls.Add($l); $v=New-Object System.Windows.Forms.Label; $v.Text='0'; $v.Font=New-Object System.Drawing.Font('Segoe UI',10,[System.Drawing.FontStyle]::Bold); $v.Location=New-Object System.Drawing.Point(($x+115),$y); $v.Size=New-Object System.Drawing.Size($w,24); $parent.Controls.Add($v); return $v }
-$script:ScanStateValue=Add-Pair $scanBox 'Stage:' 40 65 220
-$script:ScanTxtValue=Add-Pair $scanBox 'Source files:' 360 65 150
-$script:ScanChatsValue=Add-Pair $scanBox 'Records / chats:' 650 65 190
-$script:ScanAttachValue=Add-Pair $scanBox 'Attachments found:' 40 98 180
-$script:ScanErrorValue=Add-Pair $scanBox 'Source errors:' 360 98 150
-$script:ScanUrlValue=Add-Pair $scanBox 'URLs found:' 650 98 190
+function Add-Pair($parent,[string]$label,[int]$x,[int]$y,[int]$w=100) { $l=New-Object System.Windows.Forms.Label; $l.Text=$label; $l.Location=New-Object System.Drawing.Point($x,$y); $l.Size=New-Object System.Drawing.Size(150,24); $parent.Controls.Add($l); $v=New-Object System.Windows.Forms.Label; $v.Text='0'; $v.Font=New-Object System.Drawing.Font('Segoe UI',10,[System.Drawing.FontStyle]::Bold); $v.Location=New-Object System.Drawing.Point(($x+150),$y); $v.Size=New-Object System.Drawing.Size($w,24); $parent.Controls.Add($v); return $v }
+$script:ScanStateValue=Add-Pair $scanBox 'Stage:' 40 65 100
+$script:ScanTxtValue=Add-Pair $scanBox 'Source files:' 350 65 100
+$script:ScanChatsValue=Add-Pair $scanBox 'Records / chats:' 650 65 140
+$script:ScanAttachValue=Add-Pair $scanBox 'Attachments found:' 40 98 100
+$script:ScanErrorValue=Add-Pair $scanBox 'Source errors:' 350 98 100
+$script:ScanUrlValue=Add-Pair $scanBox 'URLs found:' 650 98 140
 $currentLbl=New-Object System.Windows.Forms.Label; $currentLbl.Text='Current file:'; $currentLbl.Location=New-Object System.Drawing.Point(40,135); $currentLbl.Size=New-Object System.Drawing.Size(115,24); $scanBox.Controls.Add($currentLbl)
 $script:ScanCurrentValue=New-Object System.Windows.Forms.Label; $script:ScanCurrentValue.Text='—'; $script:ScanCurrentValue.Location=New-Object System.Drawing.Point(155,135); $script:ScanCurrentValue.Size=New-Object System.Drawing.Size(805,24); $script:ScanCurrentValue.AutoEllipsis=$true; $script:ScanCurrentValue.RightToLeft='No'; $script:ScanCurrentValue.TextAlign='MiddleLeft'; $scanBox.Controls.Add($script:ScanCurrentValue)
 
 $downBox=New-Object System.Windows.Forms.GroupBox; $downBox.Text='Download - each URL is classified using the real HTTP response'; $downBox.Location=New-Object System.Drawing.Point(20,615); $downBox.Size=New-Object System.Drawing.Size(995,180); $downBox.Anchor='Top,Left,Right'; $form.Controls.Add($downBox)
 $script:DownBar=New-Object System.Windows.Forms.ProgressBar; $script:DownBar.Location=New-Object System.Drawing.Point(40,32); $script:DownBar.Size=New-Object System.Drawing.Size(860,20); $downBox.Controls.Add($script:DownBar)
 $script:DownPercent=New-Object System.Windows.Forms.Label; $script:DownPercent.Text='0%'; $script:DownPercent.Location=New-Object System.Drawing.Point(905,31); $script:DownPercent.Size=New-Object System.Drawing.Size(55,22); $downBox.Controls.Add($script:DownPercent)
-$script:DownStateValue=Add-Pair $downBox 'Stage:' 40 65 200
-$script:DownTotalValue=Add-Pair $downBox 'Total URLs:' 330 65 120
-$script:DownDoneValue=Add-Pair $downBox 'Downloaded:' 600 65 130
-$script:DownPermanentValue=Add-Pair $downBox 'Permanent failures:' 40 98 140
-$script:DownTransientValue=Add-Pair $downBox 'Transient failures:' 330 98 130
-$script:DownPendingValue=Add-Pair $downBox 'Remaining:' 600 98 130
-$script:DownSkippedValue=Add-Pair $downBox 'Skipped non-files:' 760 98 100
+$script:DownStateValue=Add-Pair $downBox 'Stage:' 40 65 100
+$script:DownTotalValue=Add-Pair $downBox 'Total URLs:' 330 65 90
+$script:DownDoneValue=Add-Pair $downBox 'Downloaded:' 600 65 90
+$script:DownPermanentValue=Add-Pair $downBox 'Permanent failures:' 40 98 80
+$script:DownTransientValue=Add-Pair $downBox 'Transient failures:' 300 98 80
+$script:DownPendingValue=Add-Pair $downBox 'Remaining:' 555 98 70
+$script:DownSkippedValue=Add-Pair $downBox 'Skipped non-files:' 780 98 50
 $curDownLbl=New-Object System.Windows.Forms.Label; $curDownLbl.Text='Current file:'; $curDownLbl.Location=New-Object System.Drawing.Point(40,135); $curDownLbl.Size=New-Object System.Drawing.Size(115,24); $downBox.Controls.Add($curDownLbl)
 $script:DownCurrentValue=New-Object System.Windows.Forms.Label; $script:DownCurrentValue.Text='—'; $script:DownCurrentValue.Location=New-Object System.Drawing.Point(155,135); $script:DownCurrentValue.Size=New-Object System.Drawing.Size(805,24); $script:DownCurrentValue.AutoEllipsis=$true; $script:DownCurrentValue.RightToLeft='No'; $script:DownCurrentValue.TextAlign='MiddleLeft'; $downBox.Controls.Add($script:DownCurrentValue)
 
