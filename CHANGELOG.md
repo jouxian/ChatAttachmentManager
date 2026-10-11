@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.4.2-GITHUB
+
+### Fixed
+- Fixed English UI layout after the localization update.
+- Moved the main title to the left to prevent clipping.
+- Rebalanced scan and download statistic columns to prevent label/value overlap.
+- Fixed the Skipped non-files label so it is fully visible.
+
+### Validation
+- PowerShell syntax checks pass.
+- Static checks pass.
+- git diff --check passes.
+- Manual Windows UI smoke test passed.
+
 ## 1.4.1-GITHUB
 
 ### Changed

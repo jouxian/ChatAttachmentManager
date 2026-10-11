@@ -19,7 +19,7 @@
 ---
 ## End-user release
 
-For normal users, publish **`ChatAttachmentManager.exe`** from `dist/` as the GitHub Release asset. The EXE is a native Windows x64 launcher and embeds the matching `Manager.ps1`, `Scanner.ps1`, `Downloader.ps1`, and `Supervisor.ps1` sources. At runtime it materializes them under `%LOCALAPPDATA%\ChatAttachmentManager\App\1.4.1` and launches the GUI.
+For normal users, publish **`ChatAttachmentManager.exe`** from `dist/` as the GitHub Release asset. The EXE is a native Windows x64 launcher and embeds the matching `Manager.ps1`, `Scanner.ps1`, `Downloader.ps1`, and `Supervisor.ps1` sources. At runtime it materializes them under `%LOCALAPPDATA%\ChatAttachmentManager\App\1.4.2` and launches the GUI.
 
 Windows PowerShell 5.1 is still the execution engine behind the GUI/download logic, but users do not need to keep `.ps1` or `.cmd` files next to the EXE.
 
