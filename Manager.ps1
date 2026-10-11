@@ -13,7 +13,7 @@ if (-not $isAdmin) {
         Start-Process -FilePath 'powershell.exe' -Verb RunAs -WindowStyle Hidden -ArgumentList ('-NoLogo -NoProfile -ExecutionPolicy Bypass -STA -File "{0}"' -f $PSCommandPath)
     }
     catch {
-        [System.Windows.Forms.MessageBox]::Show('برنامه برای مدیریت اجرای خودکار به دسترسی Administrator نیاز دارد.','Administrator') | Out-Null
+        [System.Windows.Forms.MessageBox]::Show('Administrator privileges are required to manage automatic startup.','Administrator') | Out-Null
     }
     exit
 }
@@ -56,12 +56,12 @@ function Select-Folder([string]$Description) {
 }
 
 function Ensure-ProjectEngine {
-    if ([string]::IsNullOrWhiteSpace($script:ProjectRoot)) { throw 'پروژه‌ای انتخاب نشده است.' }
+    if ([string]::IsNullOrWhiteSpace($script:ProjectRoot)) { throw 'No project is selected.' }
     $dest = Join-Path $script:ProjectRoot 'Engine'
     New-Item -ItemType Directory -Path $dest -Force | Out-Null
     foreach ($name in @('Scanner.ps1','Downloader.ps1','Supervisor.ps1')) {
         $src = Join-Path $EngineSource $name
-        if (-not (Test-Path -LiteralPath $src)) { throw "فایل Engine پیدا نشد: $name" }
+        if (-not (Test-Path -LiteralPath $src)) { throw "Engine file not found: $name" }
         Copy-Item -LiteralPath $src -Destination (Join-Path $dest $name) -Force
     }
 }
@@ -109,19 +109,19 @@ function Load-ProjectFromRoot([string]$Root) {
 }
 
 function Create-NewProject {
-    $source = Select-Folder 'پوشه‌ای را انتخاب کنید که فایل‌های متنی آرشیو/گفتگو داخل آن هستند. فرمت‌هایی مثل TXT، JSON، CSV، LOG، HTML، XML، MD و فایل متنی بدون پسوند پشتیبانی می‌شوند.'
+    $source = Select-Folder 'Select the folder containing the chat/export source files. TXT, JSON, CSV, LOG, HTML, XML, MD, and extensionless text files are supported.'
     if ([string]::IsNullOrWhiteSpace($source)) { return }
 
-    $output = Select-Folder 'پوشه خروجی را انتخاب کنید. فایل‌های دانلودشده و اطلاعات Resume اینجا می‌مانند.'
+    $output = Select-Folder 'Select the output folder. Downloaded files and resume state will be stored here.'
     if ([string]::IsNullOrWhiteSpace($output)) { return }
 
     if ($output.TrimEnd('\') -eq $source.TrimEnd('\')) {
-        if (-not (Ask-YesNo 'پوشه فایل‌های منبع و خروجی یکی هستند. بهتر است جدا باشند. ادامه می‌دهید؟')) { return }
+        if (-not (Ask-YesNo 'The source and output folders are the same. Separate folders are recommended. Continue anyway?')) { return }
     }
 
     $defaultName = Split-Path -Leaf $output
     if ([string]::IsNullOrWhiteSpace($defaultName)) { $defaultName = 'AttachmentProject' }
-    $name = [Microsoft.VisualBasic.Interaction]::InputBox('یک اسم ساده برای پروژه بنویسید:','نام پروژه',$defaultName)
+    $name = [Microsoft.VisualBasic.Interaction]::InputBox('Enter a simple project name:','Project Name',$defaultName)
     if ([string]::IsNullOrWhiteSpace($name)) { return }
 
     $root = Join-Path $output '_chat_attachment_manager'
@@ -129,7 +129,7 @@ function Create-NewProject {
     $projectJson = Join-Path $root 'project.json'
 
     if (Test-Path -LiteralPath $projectJson) {
-        if (-not (Ask-YesNo 'در این پوشه خروجی از قبل پروژه وجود دارد. اطلاعات همان پروژه باز شود؟')) { return }
+        if (-not (Ask-YesNo 'A project already exists in this output folder. Open the existing project?')) { return }
         if (Load-ProjectFromRoot $root) { Refresh-All; return }
     }
 
@@ -150,15 +150,15 @@ function Create-NewProject {
     Ensure-ProjectEngine
     Save-RecentProject
     Refresh-All
-    Show-Info "پروژه ساخته شد.`r`n`r`nهنوز اسکن شروع نشده. وقتی «شروع / ادامه» را بزنید، اول تست کوتاه روی حداکثر ۳ فایل متنیِ تشخیص‌داده‌شده انجام می‌شود."
+    Show-Info "Project created.`r`n`r`nThe scan has not started yet. When you click Start / Continue, a short preflight test will run on up to 3 detected text files."
 }
 
 function Open-ExistingProject {
-    $output = Select-Folder 'همان پوشه Output پروژه قبلی را انتخاب کنید.'
+    $output = Select-Folder 'Select the Output folder of the existing project.'
     if ([string]::IsNullOrWhiteSpace($output)) { return }
     $root = Join-Path $output '_chat_attachment_manager'
     if (-not (Load-ProjectFromRoot $root)) {
-        Show-Warning 'داخل این پوشه پروژه پیدا نشد. باید فایل _chat_attachment_manager\project.json وجود داشته باشد.'
+        Show-Warning 'No project was found in this folder. _chat_attachment_manager\project.json must exist.'
         return
     }
     Ensure-ProjectEngine
@@ -166,7 +166,7 @@ function Open-ExistingProject {
 }
 
 function Register-And-StartTask {
-    if ([string]::IsNullOrWhiteSpace($script:ProjectRoot)) { Show-Warning 'اول یک پروژه بسازید یا پروژه موجود را باز کنید.'; return }
+    if ([string]::IsNullOrWhiteSpace($script:ProjectRoot)) { Show-Warning 'Create a new project or open an existing project first.'; return }
     Ensure-ProjectEngine
 
     # Save current project options.
@@ -195,7 +195,7 @@ function Register-And-StartTask {
 
         if ($hasStorageState -and $selectedMode -ne $savedMode) {
             Set-StorageModeUi $savedMode
-            Show-Warning "این پروژه قبلاً دانلود را با یک روش ذخیره‌سازی شروع کرده است.`r`n`r`nبرای جلوگیری از قاطی شدن فایل‌ها، روش ذخیره‌سازی وسط پروژه قابل تغییر نیست.`r`nبرای روش دیگر، یک پروژه جدید با Output جدید بسازید."
+            Show-Warning "This project has already started downloading with a specific storage mode.`r`n`r`nTo prevent mixed file layouts, the storage mode cannot be changed during a project.`r`nCreate a new project with a new Output folder to use another mode."
             return
         }
 
@@ -237,7 +237,7 @@ function Register-And-StartTask {
         Refresh-All
     }
     catch {
-        Show-Warning ("Task Scheduler خطا داد:`r`n`r`n" + ($_ | Out-String))
+        Show-Warning ("Task Scheduler error:`r`n`r`n" + ($_ | Out-String))
     }
 }
 
@@ -287,10 +287,10 @@ function Remove-AutoStart {
 function Get-TaskText {
     try {
         $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
-        if ($null -eq $task) { return 'Auto-Start: نصب نشده' }
-        return ('Auto-Start: {0} | Task: {1}' -f $(if([string]$task.State -eq 'Disabled'){'غیرفعال'}else{'فعال'}),[string]$task.State)
+        if ($null -eq $task) { return 'Auto-Start: Not installed' }
+        return ('Auto-Start: {0} | Task: {1}' -f $(if([string]$task.State -eq 'Disabled'){'Disabled'}else{'Enabled'}),[string]$task.State)
     }
-    catch { return 'Auto-Start: نامشخص' }
+    catch { return 'Auto-Start: Unknown' }
 }
 
 function Open-PathSafe([string]$Path) {
@@ -304,7 +304,7 @@ function Open-ErrorLog {
         $p = Join-Path $script:ProjectRoot $n
         if (Test-Path -LiteralPath $p) { Start-Process notepad.exe -ArgumentList ('"' + $p + '"'); return }
     }
-    Show-Info 'فعلاً فایل خطای فنی ثبت نشده است.'
+    Show-Info 'No technical error log has been recorded yet.'
 }
 
 function Get-TailText([string]$Path,[int]$Count=18) {
@@ -315,28 +315,28 @@ function Get-TailText([string]$Path,[int]$Count=18) {
 function Refresh-All {
     try {
         if ([string]::IsNullOrWhiteSpace($script:ProjectRoot) -or $null -eq $script:Project) {
-            $script:ProjectNameLabel.Text = 'پروژه: انتخاب نشده'
-            $script:SourceLabel.Text = 'پوشه فایل‌های منبع: —'
-            $script:OutputLabel.Text = 'پوشه خروجی: —'
+            $script:ProjectNameLabel.Text = 'Project: None selected'
+            $script:SourceLabel.Text = 'Source folder: —'
+            $script:OutputLabel.Text = 'Output folder: —'
             $script:TaskLabel.Text = Get-TaskText
             return
         }
 
         # Reload project in case it was edited by a newer copy.
         $script:Project = Read-JsonSafe (Join-Path $script:ProjectRoot 'project.json')
-        $script:ProjectNameLabel.Text = 'پروژه: ' + [string]$script:Project.ProjectName
-        $script:SourceLabel.Text = 'پوشه فایل‌های منبع: ' + [string]$script:Project.SourceFolder
-        $script:OutputLabel.Text = 'پوشه خروجی: ' + [string]$script:Project.OutputFolder
+        $script:ProjectNameLabel.Text = 'Project: ' + [string]$script:Project.ProjectName
+        $script:SourceLabel.Text = 'Source folder: ' + [string]$script:Project.SourceFolder
+        $script:OutputLabel.Text = 'Output folder: ' + [string]$script:Project.OutputFolder
         $script:TaskLabel.Text = Get-TaskText
 
         $savedMode=[string]$script:Project.StorageMode
         if ($savedMode -notin @('ChatFolders','FlatChatPrefix')) { $savedMode='ChatFolders' }
         if ($null -ne $script:StorageModeInfoLabel) {
             if ($savedMode -eq 'FlatChatPrefix') {
-                $script:StorageModeInfoLabel.Text='روش ذخیره فعلی پروژه: همه فایل‌ها در یک پوشه + کد چت در نام'
+                $script:StorageModeInfoLabel.Text='Current storage mode: all files in one folder with chat ID in the filename'
             }
             else {
-                $script:StorageModeInfoLabel.Text='روش ذخیره فعلی پروژه: فقط چت‌های دارای فایل پوشه می‌گیرند'
+                $script:StorageModeInfoLabel.Text='Current storage mode: folders only for chats with downloaded files'
             }
         }
 
@@ -346,9 +346,9 @@ function Refresh-All {
         $down = Read-JsonSafe (Join-Path $script:ProjectRoot 'download_status.json')
 
         if ($null -ne $sup) {
-            $script:MainStateLabel.Text = 'وضعیت: ' + [string]$sup.Message
+            $script:MainStateLabel.Text = 'Status: ' + [string]$sup.Message
         }
-        else { $script:MainStateLabel.Text = 'وضعیت: آماده برای شروع' }
+        else { $script:MainStateLabel.Text = 'Status: Ready to start' }
 
         if ($null -ne $scan) {
             $script:ScanStateValue.Text = [string]$scan.State
@@ -387,7 +387,7 @@ function Refresh-All {
         $script:LogBox.Text = Get-TailText (Join-Path $script:ProjectRoot 'auto_activity.log') 20
     }
     catch {
-        $script:MainStateLabel.Text = 'وضعیت: خطا در بروزرسانی GUI'
+        $script:MainStateLabel.Text = 'Status: GUI refresh failed'
     }
 }
 
@@ -397,105 +397,105 @@ $form.Text = 'Chat Attachment Manager UNIVERSAL 1.4.0 GITHUB'
 $form.Size = New-Object System.Drawing.Size(1050,980)
 $form.MinimumSize = New-Object System.Drawing.Size(1000,920)
 $form.StartPosition = 'CenterScreen'
-$form.RightToLeft = [System.Windows.Forms.RightToLeft]::Yes
-$form.RightToLeftLayout = $true
+$form.RightToLeft = [System.Windows.Forms.RightToLeft]::No
+$form.RightToLeftLayout = $false
 $form.Font = New-Object System.Drawing.Font('Segoe UI',10)
 
 $title = New-Object System.Windows.Forms.Label
-$title.Text = 'مدیریت عمومی دانلود پیوست‌ها — UNIVERSAL 1.4.0 GITHUB'
+$title.Text = 'Chat Attachment Manager — UNIVERSAL 1.4.0 GITHUB'
 $title.Font = New-Object System.Drawing.Font('Segoe UI',16,[System.Drawing.FontStyle]::Bold)
 $title.AutoSize = $true
 $title.Location = New-Object System.Drawing.Point(610,20)
 $form.Controls.Add($title)
 
 $script:MainStateLabel = New-Object System.Windows.Forms.Label
-$script:MainStateLabel.Text='وضعیت: آماده برای شروع'
+$script:MainStateLabel.Text='Status: Ready to start'
 $script:MainStateLabel.Location=New-Object System.Drawing.Point(30,55)
 $script:MainStateLabel.Size=New-Object System.Drawing.Size(970,42)
 $script:MainStateLabel.Font=New-Object System.Drawing.Font('Segoe UI',10,[System.Drawing.FontStyle]::Bold)
 $form.Controls.Add($script:MainStateLabel)
 
 $projectBox = New-Object System.Windows.Forms.GroupBox
-$projectBox.Text='پروژه'
+$projectBox.Text='Project'
 $projectBox.Location=New-Object System.Drawing.Point(20,100)
 $projectBox.Size=New-Object System.Drawing.Size(995,215)
 $projectBox.Anchor='Top,Left,Right'
 $form.Controls.Add($projectBox)
 
-$script:ProjectNameLabel=New-Object System.Windows.Forms.Label; $script:ProjectNameLabel.Text='پروژه: انتخاب نشده'; $script:ProjectNameLabel.Location=New-Object System.Drawing.Point(25,28); $script:ProjectNameLabel.Size=New-Object System.Drawing.Size(940,24); $projectBox.Controls.Add($script:ProjectNameLabel)
-$script:SourceLabel=New-Object System.Windows.Forms.Label; $script:SourceLabel.Text='پوشه فایل‌های منبع: —'; $script:SourceLabel.Location=New-Object System.Drawing.Point(25,55); $script:SourceLabel.Size=New-Object System.Drawing.Size(940,24); $script:SourceLabel.RightToLeft='No'; $script:SourceLabel.TextAlign='MiddleLeft'; $projectBox.Controls.Add($script:SourceLabel)
-$script:OutputLabel=New-Object System.Windows.Forms.Label; $script:OutputLabel.Text='پوشه خروجی: —'; $script:OutputLabel.Location=New-Object System.Drawing.Point(25,82); $script:OutputLabel.Size=New-Object System.Drawing.Size(940,24); $script:OutputLabel.RightToLeft='No'; $script:OutputLabel.TextAlign='MiddleLeft'; $projectBox.Controls.Add($script:OutputLabel)
+$script:ProjectNameLabel=New-Object System.Windows.Forms.Label; $script:ProjectNameLabel.Text='Project: None selected'; $script:ProjectNameLabel.Location=New-Object System.Drawing.Point(25,28); $script:ProjectNameLabel.Size=New-Object System.Drawing.Size(940,24); $projectBox.Controls.Add($script:ProjectNameLabel)
+$script:SourceLabel=New-Object System.Windows.Forms.Label; $script:SourceLabel.Text='Source folder: —'; $script:SourceLabel.Location=New-Object System.Drawing.Point(25,55); $script:SourceLabel.Size=New-Object System.Drawing.Size(940,24); $script:SourceLabel.RightToLeft='No'; $script:SourceLabel.TextAlign='MiddleLeft'; $projectBox.Controls.Add($script:SourceLabel)
+$script:OutputLabel=New-Object System.Windows.Forms.Label; $script:OutputLabel.Text='Output folder: —'; $script:OutputLabel.Location=New-Object System.Drawing.Point(25,82); $script:OutputLabel.Size=New-Object System.Drawing.Size(940,24); $script:OutputLabel.RightToLeft='No'; $script:OutputLabel.TextAlign='MiddleLeft'; $projectBox.Controls.Add($script:OutputLabel)
 $script:TaskLabel=New-Object System.Windows.Forms.Label; $script:TaskLabel.Text='Auto-Start: —'; $script:TaskLabel.Location=New-Object System.Drawing.Point(25,110); $script:TaskLabel.Size=New-Object System.Drawing.Size(450,24); $projectBox.Controls.Add($script:TaskLabel)
-$script:SubfolderCheck=New-Object System.Windows.Forms.CheckBox; $script:SubfolderCheck.Text='زیرپوشه‌های فایل‌های متنی هم بررسی شوند'; $script:SubfolderCheck.Checked=$false; $script:SubfolderCheck.Location=New-Object System.Drawing.Point(690,108); $script:SubfolderCheck.Size=New-Object System.Drawing.Size(275,28); $projectBox.Controls.Add($script:SubfolderCheck)
-$script:CleanupCheck=New-Object System.Windows.Forms.CheckBox; $script:CleanupCheck.Text='پاک کردن Cache بعد از اتمام موفق'; $script:CleanupCheck.Checked=$true; $script:CleanupCheck.Location=New-Object System.Drawing.Point(675,188); $script:CleanupCheck.Size=New-Object System.Drawing.Size(290,24); $projectBox.Controls.Add($script:CleanupCheck)
+$script:SubfolderCheck=New-Object System.Windows.Forms.CheckBox; $script:SubfolderCheck.Text='Scan source subfolders too'; $script:SubfolderCheck.Checked=$false; $script:SubfolderCheck.Location=New-Object System.Drawing.Point(690,108); $script:SubfolderCheck.Size=New-Object System.Drawing.Size(275,28); $projectBox.Controls.Add($script:SubfolderCheck)
+$script:CleanupCheck=New-Object System.Windows.Forms.CheckBox; $script:CleanupCheck.Text='Clean cache after successful completion'; $script:CleanupCheck.Checked=$true; $script:CleanupCheck.Location=New-Object System.Drawing.Point(675,188); $script:CleanupCheck.Size=New-Object System.Drawing.Size(290,24); $projectBox.Controls.Add($script:CleanupCheck)
 
 $storageModeLabel=New-Object System.Windows.Forms.Label
-$storageModeLabel.Text='روش ذخیره فایل‌های دانلودشده:'
+$storageModeLabel.Text='Downloaded-file storage mode:'
 $storageModeLabel.Location=New-Object System.Drawing.Point(25,142)
 $storageModeLabel.Size=New-Object System.Drawing.Size(210,24)
 $storageModeLabel.Font=New-Object System.Drawing.Font('Segoe UI',9,[System.Drawing.FontStyle]::Bold)
 $projectBox.Controls.Add($storageModeLabel)
 
 $script:FolderModeRadio=New-Object System.Windows.Forms.RadioButton
-$script:FolderModeRadio.Text='پوشه فقط برای چت‌هایی که واقعاً فایل دانلودشده دارند (پیشنهادی)'
+$script:FolderModeRadio.Text='Create folders only for chats with downloaded files (recommended)'
 $script:FolderModeRadio.Location=New-Object System.Drawing.Point(235,138)
 $script:FolderModeRadio.Size=New-Object System.Drawing.Size(430,30)
 $script:FolderModeRadio.Checked=$true
 $projectBox.Controls.Add($script:FolderModeRadio)
 
 $script:FlatModeRadio=New-Object System.Windows.Forms.RadioButton
-$script:FlatModeRadio.Text='همه فایل‌ها در یک پوشه + کد چت و شماره فایل در نام'
+$script:FlatModeRadio.Text='Store all files in one folder with chat ID and file number'
 $script:FlatModeRadio.Location=New-Object System.Drawing.Point(235,168)
 $script:FlatModeRadio.Size=New-Object System.Drawing.Size(430,30)
 $projectBox.Controls.Add($script:FlatModeRadio)
 
 $script:StorageModeInfoLabel=New-Object System.Windows.Forms.Label
-$script:StorageModeInfoLabel.Text='برای پروژه جدید، یکی از دو روش بالا را انتخاب کنید.'
+$script:StorageModeInfoLabel.Text='For a new project, select one of the storage modes above.'
 $script:StorageModeInfoLabel.Location=New-Object System.Drawing.Point(675,145)
 $script:StorageModeInfoLabel.Size=New-Object System.Drawing.Size(290,48)
 $projectBox.Controls.Add($script:StorageModeInfoLabel)
 
 
 $buttons = New-Object System.Windows.Forms.FlowLayoutPanel
-$buttons.Location=New-Object System.Drawing.Point(20,325); $buttons.Size=New-Object System.Drawing.Size(995,92); $buttons.Anchor='Top,Left,Right'; $buttons.RightToLeft='Yes'; $buttons.WrapContents=$true; $form.Controls.Add($buttons)
+$buttons.Location=New-Object System.Drawing.Point(20,325); $buttons.Size=New-Object System.Drawing.Size(995,92); $buttons.Anchor='Top,Left,Right'; $buttons.RightToLeft='No'; $buttons.WrapContents=$true; $form.Controls.Add($buttons)
 function Add-Button([string]$Text,[int]$Width=150) { $b=New-Object System.Windows.Forms.Button; $b.Text=$Text; $b.Size=New-Object System.Drawing.Size($Width,38); $b.Margin=New-Object System.Windows.Forms.Padding(5); $buttons.Controls.Add($b); return $b }
-$newBtn=Add-Button '➕ پروژه جدید' 145
-$openBtn=Add-Button 'باز کردن پروژه موجود' 175
-$startBtn=Add-Button '▶ شروع / ادامه' 145
-$pauseBtn=Add-Button '⏸ توقف موقت' 135
-$removeBtn=Add-Button 'حذف Auto-Start' 145
-$outputBtn=Add-Button '📁 پوشه خروجی' 135
-$errorBtn=Add-Button 'خطای فنی' 115
-$refreshBtn=Add-Button '↻ بروزرسانی' 115
+$newBtn=Add-Button 'New Project' 145
+$openBtn=Add-Button 'Open Existing Project' 175
+$startBtn=Add-Button 'Start / Continue' 145
+$pauseBtn=Add-Button 'Pause' 135
+$removeBtn=Add-Button 'Remove Auto-Start' 145
+$outputBtn=Add-Button 'Output Folder' 135
+$errorBtn=Add-Button 'Technical Error' 115
+$refreshBtn=Add-Button 'Refresh' 115
 
-$scanBox=New-Object System.Windows.Forms.GroupBox; $scanBox.Text='اسکن عمومی و قابل ادامه — نتیجه هر فایل منبع جدا ذخیره می‌شود'; $scanBox.Location=New-Object System.Drawing.Point(20,425); $scanBox.Size=New-Object System.Drawing.Size(995,180); $scanBox.Anchor='Top,Left,Right'; $form.Controls.Add($scanBox)
+$scanBox=New-Object System.Windows.Forms.GroupBox; $scanBox.Text='Resumable Scan - each source file is checkpointed separately'; $scanBox.Location=New-Object System.Drawing.Point(20,425); $scanBox.Size=New-Object System.Drawing.Size(995,180); $scanBox.Anchor='Top,Left,Right'; $form.Controls.Add($scanBox)
 $script:ScanBar=New-Object System.Windows.Forms.ProgressBar; $script:ScanBar.Location=New-Object System.Drawing.Point(40,32); $script:ScanBar.Size=New-Object System.Drawing.Size(860,20); $scanBox.Controls.Add($script:ScanBar)
 $script:ScanPercent=New-Object System.Windows.Forms.Label; $script:ScanPercent.Text='0%'; $script:ScanPercent.Location=New-Object System.Drawing.Point(905,31); $script:ScanPercent.Size=New-Object System.Drawing.Size(55,22); $scanBox.Controls.Add($script:ScanPercent)
 
 function Add-Pair($parent,[string]$label,[int]$x,[int]$y,[int]$w=200) { $l=New-Object System.Windows.Forms.Label; $l.Text=$label; $l.Location=New-Object System.Drawing.Point($x,$y); $l.Size=New-Object System.Drawing.Size(115,24); $parent.Controls.Add($l); $v=New-Object System.Windows.Forms.Label; $v.Text='0'; $v.Font=New-Object System.Drawing.Font('Segoe UI',10,[System.Drawing.FontStyle]::Bold); $v.Location=New-Object System.Drawing.Point(($x+115),$y); $v.Size=New-Object System.Drawing.Size($w,24); $parent.Controls.Add($v); return $v }
-$script:ScanStateValue=Add-Pair $scanBox 'مرحله:' 40 65 220
-$script:ScanTxtValue=Add-Pair $scanBox 'فایل منبع ذخیره‌شده:' 360 65 150
-$script:ScanChatsValue=Add-Pair $scanBox 'رکورد/چت بررسی‌شده:' 650 65 190
-$script:ScanAttachValue=Add-Pair $scanBox 'پیوست قوی پیدا شده:' 40 98 180
-$script:ScanErrorValue=Add-Pair $scanBox 'فایل منبع خطادار:' 360 98 150
-$script:ScanUrlValue=Add-Pair $scanBox 'کل URL پیدا شده:' 650 98 190
-$currentLbl=New-Object System.Windows.Forms.Label; $currentLbl.Text='فایل فعلی:'; $currentLbl.Location=New-Object System.Drawing.Point(40,135); $currentLbl.Size=New-Object System.Drawing.Size(115,24); $scanBox.Controls.Add($currentLbl)
+$script:ScanStateValue=Add-Pair $scanBox 'Stage:' 40 65 220
+$script:ScanTxtValue=Add-Pair $scanBox 'Source files:' 360 65 150
+$script:ScanChatsValue=Add-Pair $scanBox 'Records / chats:' 650 65 190
+$script:ScanAttachValue=Add-Pair $scanBox 'Attachments found:' 40 98 180
+$script:ScanErrorValue=Add-Pair $scanBox 'Source errors:' 360 98 150
+$script:ScanUrlValue=Add-Pair $scanBox 'URLs found:' 650 98 190
+$currentLbl=New-Object System.Windows.Forms.Label; $currentLbl.Text='Current file:'; $currentLbl.Location=New-Object System.Drawing.Point(40,135); $currentLbl.Size=New-Object System.Drawing.Size(115,24); $scanBox.Controls.Add($currentLbl)
 $script:ScanCurrentValue=New-Object System.Windows.Forms.Label; $script:ScanCurrentValue.Text='—'; $script:ScanCurrentValue.Location=New-Object System.Drawing.Point(155,135); $script:ScanCurrentValue.Size=New-Object System.Drawing.Size(805,24); $script:ScanCurrentValue.AutoEllipsis=$true; $script:ScanCurrentValue.RightToLeft='No'; $script:ScanCurrentValue.TextAlign='MiddleLeft'; $scanBox.Controls.Add($script:ScanCurrentValue)
 
-$downBox=New-Object System.Windows.Forms.GroupBox; $downBox.Text='دانلود — هر URL با پاسخ واقعی HTTP تشخیص داده می‌شود'; $downBox.Location=New-Object System.Drawing.Point(20,615); $downBox.Size=New-Object System.Drawing.Size(995,180); $downBox.Anchor='Top,Left,Right'; $form.Controls.Add($downBox)
+$downBox=New-Object System.Windows.Forms.GroupBox; $downBox.Text='Download - each URL is classified using the real HTTP response'; $downBox.Location=New-Object System.Drawing.Point(20,615); $downBox.Size=New-Object System.Drawing.Size(995,180); $downBox.Anchor='Top,Left,Right'; $form.Controls.Add($downBox)
 $script:DownBar=New-Object System.Windows.Forms.ProgressBar; $script:DownBar.Location=New-Object System.Drawing.Point(40,32); $script:DownBar.Size=New-Object System.Drawing.Size(860,20); $downBox.Controls.Add($script:DownBar)
 $script:DownPercent=New-Object System.Windows.Forms.Label; $script:DownPercent.Text='0%'; $script:DownPercent.Location=New-Object System.Drawing.Point(905,31); $script:DownPercent.Size=New-Object System.Drawing.Size(55,22); $downBox.Controls.Add($script:DownPercent)
-$script:DownStateValue=Add-Pair $downBox 'مرحله:' 40 65 200
-$script:DownTotalValue=Add-Pair $downBox 'کل URLها:' 330 65 120
-$script:DownDoneValue=Add-Pair $downBox 'دانلودشده:' 600 65 130
-$script:DownPermanentValue=Add-Pair $downBox 'خطای دائمی:' 40 98 140
-$script:DownTransientValue=Add-Pair $downBox 'خطای موقت:' 330 98 130
-$script:DownPendingValue=Add-Pair $downBox 'باقی‌مانده:' 600 98 130
-$script:DownSkippedValue=Add-Pair $downBox 'غیرفایل ردشده:' 760 98 100
-$curDownLbl=New-Object System.Windows.Forms.Label; $curDownLbl.Text='فایل فعلی:'; $curDownLbl.Location=New-Object System.Drawing.Point(40,135); $curDownLbl.Size=New-Object System.Drawing.Size(115,24); $downBox.Controls.Add($curDownLbl)
+$script:DownStateValue=Add-Pair $downBox 'Stage:' 40 65 200
+$script:DownTotalValue=Add-Pair $downBox 'Total URLs:' 330 65 120
+$script:DownDoneValue=Add-Pair $downBox 'Downloaded:' 600 65 130
+$script:DownPermanentValue=Add-Pair $downBox 'Permanent failures:' 40 98 140
+$script:DownTransientValue=Add-Pair $downBox 'Transient failures:' 330 98 130
+$script:DownPendingValue=Add-Pair $downBox 'Remaining:' 600 98 130
+$script:DownSkippedValue=Add-Pair $downBox 'Skipped non-files:' 760 98 100
+$curDownLbl=New-Object System.Windows.Forms.Label; $curDownLbl.Text='Current file:'; $curDownLbl.Location=New-Object System.Drawing.Point(40,135); $curDownLbl.Size=New-Object System.Drawing.Size(115,24); $downBox.Controls.Add($curDownLbl)
 $script:DownCurrentValue=New-Object System.Windows.Forms.Label; $script:DownCurrentValue.Text='—'; $script:DownCurrentValue.Location=New-Object System.Drawing.Point(155,135); $script:DownCurrentValue.Size=New-Object System.Drawing.Size(805,24); $script:DownCurrentValue.AutoEllipsis=$true; $script:DownCurrentValue.RightToLeft='No'; $script:DownCurrentValue.TextAlign='MiddleLeft'; $downBox.Controls.Add($script:DownCurrentValue)
 
-$logBoxGroup=New-Object System.Windows.Forms.GroupBox; $logBoxGroup.Text='گزارش آخر'; $logBoxGroup.Location=New-Object System.Drawing.Point(20,805); $logBoxGroup.Size=New-Object System.Drawing.Size(995,110); $logBoxGroup.Anchor='Top,Bottom,Left,Right'; $form.Controls.Add($logBoxGroup)
+$logBoxGroup=New-Object System.Windows.Forms.GroupBox; $logBoxGroup.Text='Latest Report'; $logBoxGroup.Location=New-Object System.Drawing.Point(20,805); $logBoxGroup.Size=New-Object System.Drawing.Size(995,110); $logBoxGroup.Anchor='Top,Bottom,Left,Right'; $form.Controls.Add($logBoxGroup)
 $script:LogBox=New-Object System.Windows.Forms.TextBox; $script:LogBox.Multiline=$true; $script:LogBox.ReadOnly=$true; $script:LogBox.ScrollBars='Vertical'; $script:LogBox.Location=New-Object System.Drawing.Point(20,25); $script:LogBox.Size=New-Object System.Drawing.Size(950,72); $script:LogBox.Anchor='Top,Bottom,Left,Right'; $script:LogBox.RightToLeft='No'; $script:LogBox.Font=New-Object System.Drawing.Font('Consolas',9); $logBoxGroup.Controls.Add($script:LogBox)
 
 $newBtn.Add_Click({ try { Create-NewProject } catch { Show-Warning ($_ | Out-String) } })

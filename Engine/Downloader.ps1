@@ -796,7 +796,7 @@ try {
     New-Item -ItemType Directory -Path $filesRoot -Force | Out-Null
     New-Item -ItemType Directory -Path $partialsRoot -Force | Out-Null
     $checkpointPath=Join-Path $ProjectRoot 'download_state.jsonl'; $statusPath=Join-Path $ProjectRoot 'download_status.json'
-    Write-DownloadStatus -Path $statusPath -State 'PREPARING_INVENTORY' -Total 0 -Downloaded 0 -Permanent 0 -Transient 0 -Skipped 0 -Pending 0 -CurrentFile '' -CurrentHost '' -Message 'در حال خواندن Inventory؛ تمام URLها با پاسخ واقعی HTTP بررسی می‌شوند'
+    Write-DownloadStatus -Path $statusPath -State 'PREPARING_INVENTORY' -Total 0 -Downloaded 0 -Permanent 0 -Transient 0 -Skipped 0 -Pending 0 -CurrentFile '' -CurrentHost '' -Message 'Reading inventory; all URLs will be validated using real HTTP responses'
 
     # IMPORTANT: UnknownUrl is intentionally included. HTTP headers/final response decide whether it is a file.
     $allItems=@(Import-Csv -LiteralPath $inventoryCsv -Encoding UTF8)
@@ -826,7 +826,7 @@ try {
         if (-not $done) { $queue.Enqueue($item) }
     }
 
-    $total=$allItems.Count;     Write-DownloadStatus -Path $statusPath -State 'DOWNLOADING' -Total $total -Downloaded $downloaded -Permanent $permanent -Transient 0 -Skipped $skipped -Pending $queue.Count -CurrentFile '' -CurrentHost '' -Message (('شروع/ادامه بررسی و دانلود؛ روش ذخیره: {0}' -f $storageMode))
+    $total=$allItems.Count;     Write-DownloadStatus -Path $statusPath -State 'DOWNLOADING' -Total $total -Downloaded $downloaded -Permanent $permanent -Transient 0 -Skipped $skipped -Pending $queue.Count -CurrentFile '' -CurrentHost '' -Message (('Starting/resuming URL validation and downloads; storage mode: {0}' -f $storageMode))
 
     while ($queue.Count -gt 0) {
         $cycleCount=$queue.Count; $item=$null; $remoteHost=''
@@ -847,13 +847,13 @@ try {
             foreach ($v in $hostCooldown.Values) { if ($null -eq $nearest -or [DateTime]$v -lt [DateTime]$nearest) { $nearest=[DateTime]$v } }
             $sleepSec=5
             if ($null -ne $nearest) { $sleepSec=[Math]::Max(1,[Math]::Min(30,[Math]::Ceiling(($nearest-[DateTime]::UtcNow).TotalSeconds))) }
-            Write-DownloadStatus -Path $statusPath -State 'HOST_COOLDOWN' -Total $total -Downloaded $downloaded -Permanent $permanent -Transient $transient -Skipped $skipped -Pending $queue.Count -CurrentFile '' -CurrentHost '' -Message ("همه میزبان‌های باقی‌مانده موقتاً در cooldown هستند؛ {0} ثانیه صبر" -f $sleepSec)
+            Write-DownloadStatus -Path $statusPath -State 'HOST_COOLDOWN' -Total $total -Downloaded $downloaded -Permanent $permanent -Transient $transient -Skipped $skipped -Pending $queue.Count -CurrentFile '' -CurrentHost '' -Message ("All remaining hosts are temporarily in cooldown; waiting {0} seconds" -f $sleepSec)
             Start-Sleep -Seconds $sleepSec; continue
         }
 
         $target=Get-TargetInfo -Item $item -PartialsRoot $partialsRoot; $key=[string]$target.Key
         if (-not $attempts.ContainsKey($key)) { $attempts[$key]=0 }
-        Write-DownloadStatus -Path $statusPath -State 'DOWNLOADING' -Total $total -Downloaded $downloaded -Permanent $permanent -Transient $transient -Skipped $skipped -Pending ($queue.Count+1) -CurrentFile $target.InitialName -CurrentHost $remoteHost -Message 'در حال درخواست HTTP و تشخیص فایل/صفحه از روی پاسخ واقعی'
+        Write-DownloadStatus -Path $statusPath -State 'DOWNLOADING' -Total $total -Downloaded $downloaded -Permanent $permanent -Transient $transient -Skipped $skipped -Pending ($queue.Count+1) -CurrentFile $target.InitialName -CurrentHost $remoteHost -Message 'Sending HTTP request and classifying file/page from the real response'
         $result=Download-One -Item $item -Target $target
 
         switch ([string]$result.Kind) {
@@ -906,12 +906,12 @@ try {
             }
         }
 
-        Write-DownloadStatus -Path $statusPath -State 'DOWNLOADING' -Total $total -Downloaded $downloaded -Permanent $permanent -Transient $transient -Skipped $skipped -Pending $queue.Count -CurrentFile $target.InitialName -CurrentHost $remoteHost -Message 'نتیجه هر URL ذخیره شد'
+        Write-DownloadStatus -Path $statusPath -State 'DOWNLOADING' -Total $total -Downloaded $downloaded -Permanent $permanent -Transient $transient -Skipped $skipped -Pending $queue.Count -CurrentFile $target.InitialName -CurrentHost $remoteHost -Message 'Result for this URL was saved'
         if ($NormalDelayMs -gt 0) { Start-Sleep -Milliseconds $NormalDelayMs }
     }
 
     $passState=if ($transient -gt 0) { 'PASS_COMPLETE_WITH_TRANSIENT' } else { 'PASS_COMPLETE' }
-    Write-DownloadStatus -Path $statusPath -State $passState -Total $total -Downloaded $downloaded -Permanent $permanent -Transient $transient -Skipped $skipped -Pending 0 -CurrentFile '' -CurrentHost '' -Message 'این دور تمام شد؛ گزارش فایل‌ها/غیرفایل‌ها/خطاها ذخیره شد'
+    Write-DownloadStatus -Path $statusPath -State $passState -Total $total -Downloaded $downloaded -Permanent $permanent -Transient $transient -Skipped $skipped -Pending 0 -CurrentFile '' -CurrentHost '' -Message 'This pass is complete; file/non-file/error reports were saved'
     if ($null -ne $script:CheckpointWriter) { $script:CheckpointWriter.Dispose(); $script:CheckpointWriter=$null; $script:CheckpointWriterPath='' }
     Write-ReadableReports -CheckpointPath $checkpointPath -OutputRoot $outputRoot
     $checkpointBytes=[long]0
@@ -925,7 +925,7 @@ catch {
     try { if ($null -ne $script:CheckpointWriter) { $script:CheckpointWriter.Dispose(); $script:CheckpointWriter=$null; $script:CheckpointWriterPath='' } } catch { }
     try {
         ($_ | Out-String) | Set-Content -LiteralPath (Join-Path $ProjectRoot 'downloader_fatal.log') -Encoding UTF8
-        Write-DownloadStatus -Path (Join-Path $ProjectRoot 'download_status.json') -State 'FATAL' -Total 0 -Downloaded 0 -Permanent 0 -Transient 0 -Skipped 0 -Pending 0 -CurrentFile '' -CurrentHost '' -Message 'Downloader خطای کلی داد؛ متن دقیق در downloader_fatal.log ذخیره شد'
+        Write-DownloadStatus -Path (Join-Path $ProjectRoot 'download_status.json') -State 'FATAL' -Total 0 -Downloaded 0 -Permanent 0 -Transient 0 -Skipped 0 -Pending 0 -CurrentFile '' -CurrentHost '' -Message 'Downloader encountered a fatal error; details were saved to downloader_fatal.log'
     }
     catch { }
     exit 99

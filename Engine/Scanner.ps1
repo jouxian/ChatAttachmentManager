@@ -456,8 +456,8 @@ function Scan-OneTextFile {
             elseif ($firstChar -eq 'N' -or $firstChar -eq 'n') {
                 if ($trimmed -match '^Name\s*:\s*(.+?)\s*$') { $recordName=$matches[1].Trim() }
             }
-            elseif ($trimmed.StartsWith('نام',[System.StringComparison]::OrdinalIgnoreCase) -or $trimmed.StartsWith('مشتری',[System.StringComparison]::OrdinalIgnoreCase)) {
-                if ($trimmed -match '^(نام|مشتری)\s*:\s*(.+?)\s*$') { $recordName=$matches[2].Trim() }
+            elseif ($trimmed -match '^(?:\u0646\u0627\u0645|\u0645\u0634\u062a\u0631\u06cc)\s*:') {
+                if ($trimmed -match '^(?:\u0646\u0627\u0645|\u0645\u0634\u062a\u0631\u06cc)\s*:\s*(.+?)\s*$') { $recordName=$matches[1].Trim() }
             }
 
             # Generic JSON IDs are relevant only when the line contains a likely quoted key.
@@ -527,7 +527,7 @@ function Scan-OneTextFile {
             if (($lineNumber -band 2047) -eq 0 -and ([DateTime]::UtcNow-$lastStatus).TotalSeconds -ge 2) {
                 Write-ScanStatus -State 'SCANNING' -TxtTotal $TxtTotal -TxtCompleted $TxtCompletedBefore -TxtErrors $TxtErrorsBefore `
                     -ChatsDone ($RecordsBase+$recordCount) -ChatsExpected $RecordsExpected -UrlsFound ($UrlsBase+$urlCount) -AttachmentsFound ($AttachmentsBase+$attachmentCount) `
-                    -CurrentTxt $File.Name -CurrentChat $recordNumber -CurrentLine $lineNumber -Message 'FASTSCAN: streaming inventory; پردازش سنگین فقط روی خطوط دارای URL/پیوست انجام می‌شود' -StatusPath $StatusPath
+                    -CurrentTxt $File.Name -CurrentChat $recordNumber -CurrentLine $lineNumber -Message 'FASTSCAN: streaming inventory; expensive processing runs only on lines containing URLs/attachments' -StatusPath $StatusPath
                 $lastStatus=[DateTime]::UtcNow
             }
 
@@ -640,7 +640,7 @@ try {
     $sourceFiles=@(Get-SourceFiles -SourceRoot $sourceRoot -OutputRoot $outputRoot -ProjectRoot $ProjectRoot -Recurse $scanSubfolders)
     if ($Mode -eq 'Preflight' -and $sourceFiles.Count -gt 3) { $sourceFiles=@($sourceFiles | Select-Object -First 3) }
     if ($sourceFiles.Count -eq 0) {
-        Write-ScanStatus -State 'NO_TEXT_FILES' -TxtTotal 0 -TxtCompleted 0 -TxtErrors 0 -ChatsDone 0 -ChatsExpected 0 -UrlsFound 0 -AttachmentsFound 0 -CurrentTxt '' -CurrentChat '' -CurrentLine 0 -Message 'هیچ فایل متنی قابل‌خواندن پیدا نشد' -StatusPath $statusPath
+        Write-ScanStatus -State 'NO_TEXT_FILES' -TxtTotal 0 -TxtCompleted 0 -TxtErrors 0 -ChatsDone 0 -ChatsExpected 0 -UrlsFound 0 -AttachmentsFound 0 -CurrentTxt '' -CurrentChat '' -CurrentLine 0 -Message 'No readable text files were found' -StatusPath $statusPath
         exit 12
     }
 
@@ -659,7 +659,7 @@ try {
         if ([string]$meta.Status -eq 'COMPLETE') { $completed++; $baseRecords += [long]$meta.Chats; $baseUrls += [long]$meta.Urls; $baseAttachments += [long]$meta.Attachments }
     }
 
-    Write-ScanStatus -State 'SCANNING' -TxtTotal $sourceFiles.Count -TxtCompleted $completed -TxtErrors 0 -ChatsDone $baseRecords -ChatsExpected $expectedRecords -UrlsFound $baseUrls -AttachmentsFound $baseAttachments -CurrentTxt '' -CurrentChat '' -CurrentLine 0 -Message 'شروع اسکن عمومی و قابل ادامه' -StatusPath $statusPath
+    Write-ScanStatus -State 'SCANNING' -TxtTotal $sourceFiles.Count -TxtCompleted $completed -TxtErrors 0 -ChatsDone $baseRecords -ChatsExpected $expectedRecords -UrlsFound $baseUrls -AttachmentsFound $baseAttachments -CurrentTxt '' -CurrentChat '' -CurrentLine 0 -Message 'Starting resumable general scan' -StatusPath $statusPath
 
     foreach ($f in $sourceFiles) {
         $id=Get-CacheId -File $f; $signature=Get-FileSignature -File $f; $metaPath=Join-Path $cacheRoot ($id+'.json'); $csvPath=Join-Path $cacheRoot ($id+'.csv')
@@ -679,14 +679,14 @@ try {
             $errors++; $errText=$_ | Out-String
             try { Write-JsonAtomic -Path $metaPath -Object ([ordered]@{ EngineVersion=$EngineVersion; SourcePath=$f.FullName; Signature=$signature; Status='ERROR'; CompletedAt=[DateTime]::Now.ToString('yyyy-MM-dd HH:mm:ss'); Chats=0; Urls=0; Attachments=0; UnknownUrls=0; Lines=0; Error=$errText }) } catch { }
         }
-        Write-ScanStatus -State 'SCANNING' -TxtTotal $sourceFiles.Count -TxtCompleted $completed -TxtErrors $errors -ChatsDone $baseRecords -ChatsExpected $expectedRecords -UrlsFound $baseUrls -AttachmentsFound $baseAttachments -CurrentTxt $f.Name -CurrentChat '' -CurrentLine 0 -Message 'نتیجه این فایل منبع ذخیره شد؛ در صورت قطع شدن از همینجا ادامه می‌دهد' -StatusPath $statusPath
+        Write-ScanStatus -State 'SCANNING' -TxtTotal $sourceFiles.Count -TxtCompleted $completed -TxtErrors $errors -ChatsDone $baseRecords -ChatsExpected $expectedRecords -UrlsFound $baseUrls -AttachmentsFound $baseAttachments -CurrentTxt $f.Name -CurrentChat '' -CurrentLine 0 -Message 'Result for this source file was saved; scanning can resume from here after interruption' -StatusPath $statusPath
     }
 
     if ($Mode -eq 'Preflight') {
-        if ($errors -gt 0) { Write-ScanStatus -State 'PREFLIGHT_FAILED' -TxtTotal $sourceFiles.Count -TxtCompleted $completed -TxtErrors $errors -ChatsDone $baseRecords -ChatsExpected $expectedRecords -UrlsFound $baseUrls -AttachmentsFound $baseAttachments -CurrentTxt '' -CurrentChat '' -CurrentLine 0 -Message 'تست اولیه روی فایل‌های منبع خطا داد؛ اسکن کامل شروع نشد' -StatusPath $statusPath; exit 31 }
+        if ($errors -gt 0) { Write-ScanStatus -State 'PREFLIGHT_FAILED' -TxtTotal $sourceFiles.Count -TxtCompleted $completed -TxtErrors $errors -ChatsDone $baseRecords -ChatsExpected $expectedRecords -UrlsFound $baseUrls -AttachmentsFound $baseAttachments -CurrentTxt '' -CurrentChat '' -CurrentLine 0 -Message 'Preflight failed on source files; full scan was not started' -StatusPath $statusPath; exit 31 }
         $preflightInventory=Join-Path $workRoot 'preflight_inventory.csv'; Merge-Inventory -Files $sourceFiles -CacheRoot $cacheRoot -OutputCsv $preflightInventory
         Write-JsonAtomic -Path (Join-Path $ProjectRoot 'preflight_scanner_ok.json') -Object ([ordered]@{ EngineVersion=$EngineVersion; CompletedAt=[DateTime]::Now.ToString('o'); FilesTested=$sourceFiles.Count; RecordsTested=$baseRecords; UrlRows=$baseUrls; AttachmentCandidates=$baseAttachments })
-        Write-ScanStatus -State 'PREFLIGHT_SCANNER_OK' -TxtTotal $sourceFiles.Count -TxtCompleted $completed -TxtErrors 0 -ChatsDone $baseRecords -ChatsExpected $expectedRecords -UrlsFound $baseUrls -AttachmentsFound $baseAttachments -CurrentTxt '' -CurrentChat '' -CurrentLine 0 -Message 'Scanner عمومی و مرحله ادغام روی نمونه‌ها موفق بود' -StatusPath $statusPath
+        Write-ScanStatus -State 'PREFLIGHT_SCANNER_OK' -TxtTotal $sourceFiles.Count -TxtCompleted $completed -TxtErrors 0 -ChatsDone $baseRecords -ChatsExpected $expectedRecords -UrlsFound $baseUrls -AttachmentsFound $baseAttachments -CurrentTxt '' -CurrentChat '' -CurrentLine 0 -Message 'General scanner and merge stage succeeded on the sample files' -StatusPath $statusPath
         exit 0
     }
 
@@ -704,13 +704,13 @@ try {
     elseif (Test-Path -LiteralPath $scanErrorsCsv) { Remove-Item -LiteralPath $scanErrorsCsv -Force -ErrorAction SilentlyContinue }
 
     $finalState=if ($errors -gt 0) { 'COMPLETE_WITH_ERRORS' } else { 'COMPLETE' }
-    Write-ScanStatus -State $finalState -TxtTotal $sourceFiles.Count -TxtCompleted $completed -TxtErrors $errors -ChatsDone $baseRecords -ChatsExpected $expectedRecords -UrlsFound $baseUrls -AttachmentsFound $baseAttachments -CurrentTxt '' -CurrentChat '' -CurrentLine 0 -Message 'اسکن تمام شد؛ all_urls.txt ساخته شد و Downloader تمام URLها را با پاسخ واقعی HTTP بررسی می‌کند' -StatusPath $statusPath
+    Write-ScanStatus -State $finalState -TxtTotal $sourceFiles.Count -TxtCompleted $completed -TxtErrors $errors -ChatsDone $baseRecords -ChatsExpected $expectedRecords -UrlsFound $baseUrls -AttachmentsFound $baseAttachments -CurrentTxt '' -CurrentChat '' -CurrentLine 0 -Message 'Scan complete; all_urls.txt was created and Downloader will validate all URLs using real HTTP responses' -StatusPath $statusPath
     exit 0
 }
 catch {
     try {
         ($_ | Out-String) | Set-Content -LiteralPath (Join-Path $ProjectRoot 'scanner_fatal.log') -Encoding UTF8
-        Write-ScanStatus -State 'FATAL' -TxtTotal 0 -TxtCompleted 0 -TxtErrors 1 -ChatsDone 0 -ChatsExpected 0 -UrlsFound 0 -AttachmentsFound 0 -CurrentTxt '' -CurrentChat '' -CurrentLine 0 -Message 'Scanner خطای کلی داد؛ متن دقیق در scanner_fatal.log ذخیره شد' -StatusPath (Join-Path $ProjectRoot 'scan_status.json')
+        Write-ScanStatus -State 'FATAL' -TxtTotal 0 -TxtCompleted 0 -TxtErrors 1 -ChatsDone 0 -ChatsExpected 0 -UrlsFound 0 -AttachmentsFound 0 -CurrentTxt '' -CurrentChat '' -CurrentLine 0 -Message 'Scanner encountered a fatal error; details were saved to scanner_fatal.log' -StatusPath (Join-Path $ProjectRoot 'scan_status.json')
     }
     catch { }
     exit 99
