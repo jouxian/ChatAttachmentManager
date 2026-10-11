@@ -1,9 +1,22 @@
-# Chat Attachment Manager UNIVERSAL
+<div align="center">
 
-Windows tool for scanning large chat/export archives, extracting HTTP(S) URLs, identifying real downloadable files from HTTP responses, and downloading attachments with persistent resume/checkpoint support.
+# Chat Attachment Manager
 
-> Current development release: **UNIVERSAL 1.4.0 GITHUB**
+**Resilient Windows tool for scanning chat/export archives, extracting URLs, identifying real downloadable files, and downloading attachments with persistent resume support.**
 
+[![Release](https://img.shields.io/github/v/release/jouxian/ChatAttachmentManager?sort=semver)](https://github.com/jouxian/ChatAttachmentManager/releases/latest)
+[![Static Checks](https://github.com/jouxian/ChatAttachmentManager/actions/workflows/static-checks.yml/badge.svg)](https://github.com/jouxian/ChatAttachmentManager/actions/workflows/static-checks.yml)
+[![Build Windows EXE](https://github.com/jouxian/ChatAttachmentManager/actions/workflows/build-exe.yml/badge.svg)](https://github.com/jouxian/ChatAttachmentManager/actions/workflows/build-exe.yml)
+[![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-5391FE?logo=powershell&logoColor=white)](https://learn.microsoft.com/powershell/)
+[![Windows](https://img.shields.io/badge/Windows-10%2F11%2FServer-0078D4?logo=windows&logoColor=white)](https://www.microsoft.com/windows/)
+[![License](https://img.shields.io/github/license/jouxian/ChatAttachmentManager)](LICENSE)
+[![Downloads](https://img.shields.io/github/downloads/jouxian/ChatAttachmentManager/total)](https://github.com/jouxian/ChatAttachmentManager/releases)
+
+[**Download Windows EXE**](https://github.com/jouxian/ChatAttachmentManager/releases/latest/download/ChatAttachmentManager.exe) · [Latest Release](https://github.com/jouxian/ChatAttachmentManager/releases/latest) · [Security Policy](SECURITY.md) · [Changelog](CHANGELOG.md) · [Persian Documentation](README_FA.md)
+
+</div>
+
+---
 ## End-user release
 
 For normal users, publish **`ChatAttachmentManager.exe`** from `dist/` as the GitHub Release asset. The EXE is a native Windows x64 launcher and embeds the matching `Manager.ps1`, `Scanner.ps1`, `Downloader.ps1`, and `Supervisor.ps1` sources. At runtime it materializes them under `%LOCALAPPDATA%\ChatAttachmentManager\App\1.4.0` and launches the GUI.
@@ -147,7 +160,7 @@ A real Windows smoke test is still recommended before tagging a stable public re
 
 ## License
 
-No license is included yet. Before making the repository public, choose and add a license (for example MIT, Apache-2.0, or GPL-3.0) that matches how you want others to use and redistribute the project.
+Chat Attachment Manager is released under the **MIT License**. See [LICENSE](LICENSE) for the full license text.
 
 ## Persian documentation
 
