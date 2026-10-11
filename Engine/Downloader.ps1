@@ -6,7 +6,7 @@
 )
 
 $ErrorActionPreference = 'Stop'
-$EngineVersion = 'UNIVERSAL-1.4.0-GITHUB'
+$EngineVersion = 'UNIVERSAL-1.4.1-GITHUB'
 $MaxAttemptsPerRun = 2
 $ConnectTimeoutMs = 15000
 $ReadWriteTimeoutMs = 25000
@@ -568,7 +568,7 @@ function Download-One {
     try {
         $request=[System.Net.HttpWebRequest]::Create($url)
         $request.Method='GET'; $request.AllowAutoRedirect=$true; $request.MaximumAutomaticRedirections=10
-        $request.UserAgent='ChatAttachmentManager-UNIVERSAL/1.4.0'; $request.Timeout=$ConnectTimeoutMs; $request.ReadWriteTimeout=$ReadWriteTimeoutMs
+        $request.UserAgent='ChatAttachmentManager-UNIVERSAL/1.4.1'; $request.Timeout=$ConnectTimeoutMs; $request.ReadWriteTimeout=$ReadWriteTimeoutMs
         $request.AutomaticDecompression=[System.Net.DecompressionMethods]::GZip -bor [System.Net.DecompressionMethods]::Deflate
         if ($resumeFrom -gt 0) {
             $request.AddRange($resumeFrom)

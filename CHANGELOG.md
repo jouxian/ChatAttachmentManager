@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.4.1-GITHUB
+
+### Changed
+- Converted the Windows GUI, dialogs, runtime status messages, and downloader/scanner messages to English.
+- Removed Persian and legacy FA documentation files from the public repository.
+- Removed obsolete Persian documentation links from the README.
+- Preserved support for recognizing Persian Name/Customer fields in imported chat exports without keeping literal Persian characters in the source.
+
+### Validation
+- PowerShell syntax checks pass.
+- Repository static checks pass.
+- Repository scan contains no Persian characters.
+
 ## 1.4.0-GITHUB
 
 ### Added
