@@ -7,7 +7,7 @@
 )
 
 $ErrorActionPreference = 'Stop'
-$EngineVersion = 'UNIVERSAL-1.4.0-GITHUB'
+$EngineVersion = 'UNIVERSAL-1.4.1-GITHUB'
 $script:UrlRegex = [regex]::new('https?://[^\s<>"''\]]+',[System.Text.RegularExpressions.RegexOptions]::IgnoreCase -bor [System.Text.RegularExpressions.RegexOptions]::Compiled)
 
 function Write-JsonAtomic {

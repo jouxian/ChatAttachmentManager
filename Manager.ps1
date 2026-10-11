@@ -393,7 +393,7 @@ function Refresh-All {
 
 # ---------------- GUI ----------------
 $form = New-Object System.Windows.Forms.Form
-$form.Text = 'Chat Attachment Manager UNIVERSAL 1.4.0 GITHUB'
+$form.Text = 'Chat Attachment Manager UNIVERSAL 1.4.1 GITHUB'
 $form.Size = New-Object System.Drawing.Size(1050,980)
 $form.MinimumSize = New-Object System.Drawing.Size(1000,920)
 $form.StartPosition = 'CenterScreen'
@@ -402,7 +402,7 @@ $form.RightToLeftLayout = $false
 $form.Font = New-Object System.Drawing.Font('Segoe UI',10)
 
 $title = New-Object System.Windows.Forms.Label
-$title.Text = 'Chat Attachment Manager — UNIVERSAL 1.4.0 GITHUB'
+$title.Text = 'Chat Attachment Manager — UNIVERSAL 1.4.1 GITHUB'
 $title.Font = New-Object System.Drawing.Font('Segoe UI',16,[System.Drawing.FontStyle]::Bold)
 $title.AutoSize = $true
 $title.Location = New-Object System.Drawing.Point(610,20)
