@@ -4,7 +4,7 @@
 )
 
 $ErrorActionPreference = 'Stop'
-$EngineVersion = 'UNIVERSAL-1.4.1-GITHUB'
+$EngineVersion = 'UNIVERSAL-1.4.2-GITHUB'
 $NetworkRetrySeconds = 60
 $CrashRetrySeconds = 30
 $MaxRetrySeconds = 900
