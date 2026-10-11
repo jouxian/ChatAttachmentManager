@@ -12,7 +12,7 @@
 [![License](https://img.shields.io/github/license/jouxian/ChatAttachmentManager)](LICENSE)
 [![Downloads](https://img.shields.io/github/downloads/jouxian/ChatAttachmentManager/total)](https://github.com/jouxian/ChatAttachmentManager/releases)
 
-[**Download Windows EXE**](https://github.com/jouxian/ChatAttachmentManager/releases/latest/download/ChatAttachmentManager.exe) · [Latest Release](https://github.com/jouxian/ChatAttachmentManager/releases/latest) · [Security Policy](SECURITY.md) · [Changelog](CHANGELOG.md) · [Persian Documentation](README_FA.md)
+[**Download Windows EXE**](https://github.com/jouxian/ChatAttachmentManager/releases/latest/download/ChatAttachmentManager.exe) · [Latest Release](https://github.com/jouxian/ChatAttachmentManager/releases/latest) · [Security Policy](SECURITY.md) · [Changelog](CHANGELOG.md)
 
 </div>
 
@@ -161,7 +161,3 @@ A real Windows smoke test is still recommended before tagging a stable public re
 ## License
 
 Chat Attachment Manager is released under the **MIT License**. See [LICENSE](LICENSE) for the full license text.
-
-## Persian documentation
-
-See [README_FA.md](README_FA.md).
