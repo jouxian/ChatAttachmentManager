@@ -163,32 +163,84 @@ function Get-DetectedEncoding {
 }
 
 function Get-SourceFiles {
-    param([string]$SourceRoot,[string]$OutputRoot,[string]$ProjectRoot,[bool]$Recurse)
+    param([string]$SourceRoot,[string]$OutputRoot,[string]$ProjectRoot,[bool]$Recurse,[int]$MaxFiles=0)
 
-    if ($Recurse) { $all = @(Get-ChildItem -LiteralPath $SourceRoot -File -Recurse -ErrorAction SilentlyContinue | Sort-Object FullName) }
-    else { $all = @(Get-ChildItem -LiteralPath $SourceRoot -File -ErrorAction SilentlyContinue | Sort-Object FullName) }
-
-    $result = New-Object System.Collections.ArrayList
+    $result = New-Object 'System.Collections.Generic.List[System.IO.FileInfo]'
+    $outputPath = ''
+    $projectPath = ''
     $projectPrefix = ''
+    $downloadFilesPath = ''
     $downloadFilesPrefix = ''
-    try { $projectPrefix = ([IO.Path]::GetFullPath($ProjectRoot).TrimEnd('\') + '\').ToLowerInvariant() } catch { }
-    try { $downloadFilesPrefix = ([IO.Path]::GetFullPath((Join-Path $OutputRoot 'files')).TrimEnd('\') + '\').ToLowerInvariant() } catch { }
+    try { $outputPath = [IO.Path]::GetFullPath($OutputRoot).TrimEnd('\') } catch { }
+    try {
+        $projectPath = [IO.Path]::GetFullPath($ProjectRoot).TrimEnd('\')
+        $projectPrefix = $projectPath + '\'
+    }
+    catch { }
+    try {
+        $downloadFilesPath = [IO.Path]::GetFullPath((Join-Path $OutputRoot 'files')).TrimEnd('\')
+        $downloadFilesPrefix = $downloadFilesPath + '\'
+    }
+    catch { }
     $generatedNames = @('all_urls_inventory.csv','all_urls.txt','source_files_detected.csv','scan_errors.csv','attachments_failed.csv','attachments_index.csv','urls_skipped_as_nonfiles.csv')
     $knownTextExt = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
     foreach ($ext in @('.txt','.json','.jsonl','.csv','.tsv','.log','.html','.htm','.xml','.md','.markdown','.yaml','.yml','.ini','.cfg','.conf')) { [void]$knownTextExt.Add($ext) }
 
-    foreach ($f in $all) {
-        $fp = $f.FullName.ToLowerInvariant()
-        if (-not [string]::IsNullOrWhiteSpace($projectPrefix) -and $fp.StartsWith($projectPrefix)) { continue }
-        if (-not [string]::IsNullOrWhiteSpace($downloadFilesPrefix) -and $fp.StartsWith($downloadFilesPrefix)) { continue }
-        if ($f.DirectoryName.TrimEnd('\') -ieq $OutputRoot.TrimEnd('\') -and $generatedNames -contains $f.Name.ToLowerInvariant()) { continue }
+    $sourcePath = ''
+    try { $sourcePath = [IO.Path]::GetFullPath($SourceRoot).TrimEnd('\') } catch { }
+    if (
+        -not [string]::IsNullOrWhiteSpace($projectPath) -and
+        ($sourcePath -ieq $projectPath -or $sourcePath.StartsWith($projectPrefix,[System.StringComparison]::OrdinalIgnoreCase))
+    ) { return @() }
 
-        # Known text extensions need only a small binary sanity sample. Unknown/extensionless
-        # files keep the larger content-based test so the scanner remains format-independent.
-        $sampleBytes=if($knownTextExt.Contains([string]$f.Extension)){8192}else{65536}
-        if (Test-TextLikeFile -File $f -SampleBytes $sampleBytes) { [void]$result.Add($f) }
+    $pending = New-Object 'System.Collections.Generic.Stack[System.IO.DirectoryInfo]'
+    try { $pending.Push([System.IO.DirectoryInfo](Get-Item -LiteralPath $SourceRoot -ErrorAction Stop)) }
+    catch { return @() }
+
+    while ($pending.Count -gt 0) {
+        $directory = $pending.Pop()
+        $directoryPath = ''
+        try { $directoryPath = $directory.FullName.TrimEnd('\') } catch { continue }
+        if (
+            (-not [string]::IsNullOrWhiteSpace($projectPath) -and ($directoryPath -ieq $projectPath -or $directoryPath.StartsWith($projectPrefix,[System.StringComparison]::OrdinalIgnoreCase))) -or
+            (-not [string]::IsNullOrWhiteSpace($downloadFilesPath) -and ($directoryPath -ieq $downloadFilesPath -or $directoryPath.StartsWith($downloadFilesPrefix,[System.StringComparison]::OrdinalIgnoreCase)))
+        ) { continue }
+
+        try {
+            foreach ($filePath in [System.IO.Directory]::EnumerateFiles($directoryPath)) {
+                $file = [System.IO.FileInfo]::new($filePath)
+                if (($file.Attributes -band [System.IO.FileAttributes]::Hidden) -ne 0) { continue }
+                if (
+                    (-not [string]::IsNullOrWhiteSpace($projectPrefix) -and $file.FullName.StartsWith($projectPrefix,[System.StringComparison]::OrdinalIgnoreCase)) -or
+                    (-not [string]::IsNullOrWhiteSpace($downloadFilesPrefix) -and $file.FullName.StartsWith($downloadFilesPrefix,[System.StringComparison]::OrdinalIgnoreCase))
+                ) { continue }
+                if ($directoryPath -ieq $outputPath -and $generatedNames -contains $file.Name) { continue }
+
+                if ($knownTextExt.Contains([string]$file.Extension) -or (Test-TextLikeFile -File $file -SampleBytes 4096)) {
+                    [void]$result.Add($file)
+                    if ($MaxFiles -gt 0 -and $result.Count -ge $MaxFiles) { return $result.ToArray() }
+                }
+            }
+        }
+        catch { }
+
+        if ($Recurse) {
+            try {
+                foreach ($childCandidatePath in [System.IO.Directory]::EnumerateDirectories($directoryPath)) {
+                    $child = [System.IO.DirectoryInfo]::new($childCandidatePath)
+                    if (($child.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) { continue }
+                    $childPath = $child.FullName.TrimEnd('\')
+                    if (
+                        (-not [string]::IsNullOrWhiteSpace($projectPath) -and ($childPath -ieq $projectPath -or $childPath.StartsWith($projectPrefix,[System.StringComparison]::OrdinalIgnoreCase))) -or
+                        (-not [string]::IsNullOrWhiteSpace($downloadFilesPath) -and ($childPath -ieq $downloadFilesPath -or $childPath.StartsWith($downloadFilesPrefix,[System.StringComparison]::OrdinalIgnoreCase)))
+                    ) { continue }
+                    $pending.Push($child)
+                }
+            }
+            catch { }
+        }
     }
-    return @($result)
+    return $result.ToArray()
 }
 
 function Get-ExpectedRecordsFromHeader {
@@ -637,20 +689,29 @@ try {
     }
     New-Item -ItemType Directory -Path $cacheRoot -Force | Out-Null
 
-    $sourceFiles=@(Get-SourceFiles -SourceRoot $sourceRoot -OutputRoot $outputRoot -ProjectRoot $ProjectRoot -Recurse $scanSubfolders)
-    if ($Mode -eq 'Preflight' -and $sourceFiles.Count -gt 3) { $sourceFiles=@($sourceFiles | Select-Object -First 3) }
+    Write-ScanStatus -State 'DISCOVERING' -TxtTotal 0 -TxtCompleted 0 -TxtErrors 0 -ChatsDone 0 -ChatsExpected 0 -UrlsFound 0 -AttachmentsFound 0 -CurrentTxt '' -CurrentChat '' -CurrentLine 0 -Message 'Discovering readable source files' -StatusPath $statusPath
+    $maxSourceFiles = if ($Mode -eq 'Preflight') { 3 } else { 0 }
+    $sourceFiles=@(Get-SourceFiles -SourceRoot $sourceRoot -OutputRoot $outputRoot -ProjectRoot $ProjectRoot -Recurse $scanSubfolders -MaxFiles $maxSourceFiles)
     if ($sourceFiles.Count -eq 0) {
         Write-ScanStatus -State 'NO_TEXT_FILES' -TxtTotal 0 -TxtCompleted 0 -TxtErrors 0 -ChatsDone 0 -ChatsExpected 0 -UrlsFound 0 -AttachmentsFound 0 -CurrentTxt '' -CurrentChat '' -CurrentLine 0 -Message 'No readable text files were found' -StatusPath $statusPath
         exit 12
     }
+
+    Write-ScanStatus -State 'PREPARING_SCAN' -TxtTotal $sourceFiles.Count -TxtCompleted 0 -TxtErrors 0 -ChatsDone 0 -ChatsExpected 0 -UrlsFound 0 -AttachmentsFound 0 -CurrentTxt '' -CurrentChat '' -CurrentLine 0 -Message 'Source discovery complete; preparing resume counters' -StatusPath $statusPath
 
     # Human-readable discovery list: proves which files were accepted as text.
     if ($Mode -eq 'Full') {
         $sourceFiles | Select-Object @{N='SourceFile';E={$_.Name}},Extension,FullName,Length,LastWriteTime | Export-Csv -LiteralPath (Join-Path $outputRoot 'source_files_detected.csv') -NoTypeInformation -Encoding UTF8
     }
 
-    $expectedRecords=[long]0
-    foreach ($f in $sourceFiles) { $expectedRecords += (Get-ExpectedRecordsFromHeader -Path $f.FullName) }
+    $expectedRecords=[long]0; $preparedFiles=0
+    foreach ($f in $sourceFiles) {
+        $expectedRecords += (Get-ExpectedRecordsFromHeader -Path $f.FullName)
+        $preparedFiles++
+        if (($preparedFiles % 256) -eq 0) {
+            Write-ScanStatus -State 'PREPARING_SCAN' -TxtTotal $sourceFiles.Count -TxtCompleted 0 -TxtErrors 0 -ChatsDone 0 -ChatsExpected $expectedRecords -UrlsFound 0 -AttachmentsFound 0 -CurrentTxt $f.Name -CurrentChat '' -CurrentLine 0 -Message ("Preparing scan metadata: {0} of {1} files" -f $preparedFiles,$sourceFiles.Count) -StatusPath $statusPath
+        }
+    }
 
     $completed=0; $errors=0; $baseRecords=[long]0; $baseUrls=[long]0; $baseAttachments=[long]0
     foreach ($f in $sourceFiles) {

@@ -788,8 +788,8 @@ try {
         exit 0
     }
 
-    $inventoryCsv=Join-Path $outputRoot 'all_urls_inventory.csv'
-    if (-not (Test-Path -LiteralPath $inventoryCsv)) { throw 'all_urls_inventory.csv not found; Scanner must finish first.' }
+    $inventoryPath=Join-Path $outputRoot 'all_urls_inventory.csv'
+    if (-not (Test-Path -LiteralPath $inventoryPath -PathType Leaf)) { throw 'all_urls_inventory.csv not found; Scanner must finish first.' }
 
     $filesRoot=$script:FilesRoot
     $partialsRoot=$script:PartialsRoot
@@ -799,7 +799,7 @@ try {
     Write-DownloadStatus -Path $statusPath -State 'PREPARING_INVENTORY' -Total 0 -Downloaded 0 -Permanent 0 -Transient 0 -Skipped 0 -Pending 0 -CurrentFile '' -CurrentHost '' -Message 'Reading inventory; all URLs will be validated using real HTTP responses'
 
     # IMPORTANT: UnknownUrl is intentionally included. HTTP headers/final response decide whether it is a file.
-    $allItems=@(Import-Csv -LiteralPath $inventoryCsv -Encoding UTF8)
+    $allItems=@(Import-Csv -LiteralPath $inventoryPath -Encoding UTF8)
     $checkpointMap=Load-CheckpointMap -Path $checkpointPath
     $script:CheckpointWriter=[System.IO.StreamWriter]::new($checkpointPath,$true,[System.Text.UTF8Encoding]::new($false),65536)
     $script:CheckpointWriter.AutoFlush=$true
@@ -911,14 +911,11 @@ try {
     }
 
     $passState=if ($transient -gt 0) { 'PASS_COMPLETE_WITH_TRANSIENT' } else { 'PASS_COMPLETE' }
-    Write-DownloadStatus -Path $statusPath -State $passState -Total $total -Downloaded $downloaded -Permanent $permanent -Transient $transient -Skipped $skipped -Pending 0 -CurrentFile '' -CurrentHost '' -Message 'This pass is complete; file/non-file/error reports were saved'
+    $passMessage='This pass is complete; file/non-file/error reports were saved'
+    Write-DownloadStatus -Path $statusPath -State $passState -Total $total -Downloaded $downloaded -Permanent $permanent -Transient $transient -Skipped $skipped -Pending 0 -CurrentFile '' -CurrentHost '' -Message $passMessage
     if ($null -ne $script:CheckpointWriter) { $script:CheckpointWriter.Dispose(); $script:CheckpointWriter=$null; $script:CheckpointWriterPath='' }
     Write-ReadableReports -CheckpointPath $checkpointPath -OutputRoot $outputRoot
-    $checkpointBytes=[long]0
-    try { $checkpointBytes=(Get-Item -LiteralPath $checkpointPath -ErrorAction Stop).Length } catch { }
-    if ($passState -eq 'PASS_COMPLETE' -or $checkpointBytes -ge 134217728) {
-        Compact-Checkpoint -Path $checkpointPath
-    }
+    Compact-Checkpoint -Path $checkpointPath
     exit 0
 }
 catch {

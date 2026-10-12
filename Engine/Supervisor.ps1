@@ -114,6 +114,7 @@ function Remove-CompletedCaches {
         $p=Join-Path $ProjectRoot $dirName
         if (Test-Path -LiteralPath $p) { Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction SilentlyContinue }
     }
+    Remove-Item -LiteralPath (Join-Path $ProjectRoot 'incremental_inventory.csv') -Force -ErrorAction SilentlyContinue
 
     try {
         Get-ChildItem -LiteralPath $ProjectRoot -File -Filter '*.tmp' -ErrorAction SilentlyContinue |
@@ -239,7 +240,7 @@ try {
     $scanRetry=$CrashRetrySeconds
     $scanErrorRetry=$CrashRetrySeconds
     while ($true) {
-        Write-Log 'Starting/resuming Scanner. Every completed source file is checkpointed separately.' 'SCANNING'
+        Write-Log 'Starting/resuming Scanner. Downloader will run once the complete inventory is ready.' 'SCANNING'
         $scanCode = Run-Child -ScriptPath $scanner -ExtraArgs @('-ProjectRoot',$ProjectRoot,'-Mode','Full') -Name 'scanner'
 
         if ($scanCode -eq 12) {
