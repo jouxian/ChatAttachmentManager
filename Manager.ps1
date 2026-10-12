@@ -346,9 +346,12 @@ function Refresh-All {
         $down = Read-JsonSafe (Join-Path $script:ProjectRoot 'download_status.json')
 
         if ($null -ne $sup) {
-            $script:MainStateLabel.Text = 'Status: ' + [string]$sup.Message
+            $script:MainStateLabel.Text = 'STATUS  |  ' + [string]$sup.Message
+            if ([string]$sup.State -match '(?i)ERROR|FAILED|FATAL') { $script:MainStateLabel.ForeColor = [System.Drawing.Color]::FromArgb(255,151,164) }
+            elseif ([string]$sup.State -eq 'COMPLETE') { $script:MainStateLabel.ForeColor = [System.Drawing.Color]::FromArgb(89,240,178) }
+            else { $script:MainStateLabel.ForeColor = $accent }
         }
-        else { $script:MainStateLabel.Text = 'Status: Ready to start' }
+        else { $script:MainStateLabel.Text = 'STATUS  |  READY TO START'; $script:MainStateLabel.ForeColor = $accent }
 
         if ($null -ne $scan) {
             $script:ScanStateValue.Text = [string]$scan.State
@@ -393,27 +396,87 @@ function Refresh-All {
 
 # ---------------- GUI ----------------
 $form = New-Object System.Windows.Forms.Form
-$form.Text = 'Chat Attachment Manager UNIVERSAL 1.4.2 GITHUB'
+$form.Text = 'Chat Attachment Manager'
 $form.Size = New-Object System.Drawing.Size(1050,980)
 $form.MinimumSize = New-Object System.Drawing.Size(1000,920)
 $form.StartPosition = 'CenterScreen'
 $form.RightToLeft = [System.Windows.Forms.RightToLeft]::No
 $form.RightToLeftLayout = $false
 $form.Font = New-Object System.Drawing.Font('Segoe UI',10)
+$form.BackColor = [System.Drawing.Color]::FromArgb(10,16,29)
+$form.ForeColor = [System.Drawing.Color]::FromArgb(226,232,240)
+$form.ShowIcon = $true
+$form.AutoScroll = $true
+
+$script:BrandBitmap = $null
+$script:BrandIconHandle = [IntPtr]::Zero
+$script:BrandIcon = $null
+$brandImagePath = Join-Path $PSScriptRoot 'ChatAttachmentManager.png'
+if (Test-Path -LiteralPath $brandImagePath) {
+    try {
+        $script:BrandBitmap = [System.Drawing.Bitmap]::new($brandImagePath)
+        $script:BrandIconHandle = $script:BrandBitmap.GetHicon()
+        $script:BrandIcon = [System.Drawing.Icon]::FromHandle($script:BrandIconHandle)
+        $form.Icon = $script:BrandIcon
+    }
+    catch { }
+}
+
+$surface = [System.Drawing.Color]::FromArgb(18,28,46)
+$raisedSurface = [System.Drawing.Color]::FromArgb(25,39,62)
+$accent = [System.Drawing.Color]::FromArgb(66,214,204)
+$accentBlue = [System.Drawing.Color]::FromArgb(86,164,255)
+$textColor = [System.Drawing.Color]::FromArgb(226,232,240)
+$mutedText = [System.Drawing.Color]::FromArgb(148,163,184)
+
+$heroPanel = New-Object System.Windows.Forms.Panel
+$heroPanel.Location = New-Object System.Drawing.Point(20,18)
+$heroPanel.Size = New-Object System.Drawing.Size(995,78)
+$heroPanel.BackColor = $surface
+$heroPanel.BorderStyle = 'FixedSingle'
+$form.Controls.Add($heroPanel)
+
+$heroAccent = New-Object System.Windows.Forms.Panel
+$heroAccent.Location = New-Object System.Drawing.Point(0,0)
+$heroAccent.Size = New-Object System.Drawing.Size(5,76)
+$heroAccent.BackColor = $accent
+$heroPanel.Controls.Add($heroAccent)
+
+$brandPicture = New-Object System.Windows.Forms.PictureBox
+$brandPicture.Location = New-Object System.Drawing.Point(18,8)
+$brandPicture.Size = New-Object System.Drawing.Size(60,60)
+$brandPicture.SizeMode = 'Zoom'
+$brandPicture.BackColor = $surface
+if ($null -ne $script:BrandBitmap) { $brandPicture.Image = $script:BrandBitmap }
+$heroPanel.Controls.Add($brandPicture)
 
 $title = New-Object System.Windows.Forms.Label
-$title.Text = 'Chat Attachment Manager — UNIVERSAL 1.4.2 GITHUB'
-$title.Font = New-Object System.Drawing.Font('Segoe UI',16,[System.Drawing.FontStyle]::Bold)
+$title.Text = 'CHAT ATTACHMENT MANAGER'
+$title.Font = New-Object System.Drawing.Font('Segoe UI',17,[System.Drawing.FontStyle]::Bold)
+$title.ForeColor = $textColor
 $title.AutoSize = $true
-$title.Location = New-Object System.Drawing.Point(30,20)
-$form.Controls.Add($title)
+$title.Location = New-Object System.Drawing.Point(94,10)
+$heroPanel.Controls.Add($title)
+
+$subtitle = New-Object System.Windows.Forms.Label
+$subtitle.Text = 'RESUMABLE ARCHIVE PROCESSING  |  UNIVERSAL EDITION'
+$subtitle.Font = New-Object System.Drawing.Font('Segoe UI',8,[System.Drawing.FontStyle]::Bold)
+$subtitle.ForeColor = $accent
+$subtitle.AutoSize = $true
+$subtitle.Location = New-Object System.Drawing.Point(97,45)
+$heroPanel.Controls.Add($subtitle)
 
 $script:MainStateLabel = New-Object System.Windows.Forms.Label
 $script:MainStateLabel.Text='Status: Ready to start'
-$script:MainStateLabel.Location=New-Object System.Drawing.Point(30,55)
-$script:MainStateLabel.Size=New-Object System.Drawing.Size(970,42)
-$script:MainStateLabel.Font=New-Object System.Drawing.Font('Segoe UI',10,[System.Drawing.FontStyle]::Bold)
-$form.Controls.Add($script:MainStateLabel)
+$script:MainStateLabel.Location=New-Object System.Drawing.Point(630,32)
+$script:MainStateLabel.Size=New-Object System.Drawing.Size(340,34)
+$script:MainStateLabel.Font=New-Object System.Drawing.Font('Segoe UI',9,[System.Drawing.FontStyle]::Bold)
+$script:MainStateLabel.ForeColor=$textColor
+$script:MainStateLabel.BackColor=$raisedSurface
+$script:MainStateLabel.BorderStyle='FixedSingle'
+$script:MainStateLabel.TextAlign='MiddleLeft'
+$script:MainStateLabel.AutoEllipsis=$true
+$heroPanel.Controls.Add($script:MainStateLabel)
 
 $projectBox = New-Object System.Windows.Forms.GroupBox
 $projectBox.Text='Project'
@@ -472,7 +535,7 @@ $scanBox=New-Object System.Windows.Forms.GroupBox; $scanBox.Text='Resumable Scan
 $script:ScanBar=New-Object System.Windows.Forms.ProgressBar; $script:ScanBar.Location=New-Object System.Drawing.Point(40,32); $script:ScanBar.Size=New-Object System.Drawing.Size(860,20); $scanBox.Controls.Add($script:ScanBar)
 $script:ScanPercent=New-Object System.Windows.Forms.Label; $script:ScanPercent.Text='0%'; $script:ScanPercent.Location=New-Object System.Drawing.Point(905,31); $script:ScanPercent.Size=New-Object System.Drawing.Size(55,22); $scanBox.Controls.Add($script:ScanPercent)
 
-function Add-Pair($parent,[string]$label,[int]$x,[int]$y,[int]$w=100) { $l=New-Object System.Windows.Forms.Label; $l.Text=$label; $l.Location=New-Object System.Drawing.Point($x,$y); $l.Size=New-Object System.Drawing.Size(150,24); $parent.Controls.Add($l); $v=New-Object System.Windows.Forms.Label; $v.Text='0'; $v.Font=New-Object System.Drawing.Font('Segoe UI',10,[System.Drawing.FontStyle]::Bold); $v.Location=New-Object System.Drawing.Point(($x+150),$y); $v.Size=New-Object System.Drawing.Size($w,24); $parent.Controls.Add($v); return $v }
+function Add-Pair($parent,[string]$label,[int]$x,[int]$y,[int]$w=100) { $l=New-Object System.Windows.Forms.Label; $l.Text=$label; $l.ForeColor=$mutedText; $l.Location=New-Object System.Drawing.Point($x,$y); $l.Size=New-Object System.Drawing.Size(150,24); $parent.Controls.Add($l); $v=New-Object System.Windows.Forms.Label; $v.Text='0'; $v.ForeColor=$textColor; $v.Font=New-Object System.Drawing.Font('Segoe UI',10,[System.Drawing.FontStyle]::Bold); $v.Location=New-Object System.Drawing.Point(($x+150),$y); $v.Size=New-Object System.Drawing.Size($w,24); $parent.Controls.Add($v); return $v }
 $script:ScanStateValue=Add-Pair $scanBox 'Stage:' 40 65 100
 $script:ScanTxtValue=Add-Pair $scanBox 'Source files:' 350 65 100
 $script:ScanChatsValue=Add-Pair $scanBox 'Records / chats:' 650 65 140
@@ -497,6 +560,59 @@ $script:DownCurrentValue=New-Object System.Windows.Forms.Label; $script:DownCurr
 
 $logBoxGroup=New-Object System.Windows.Forms.GroupBox; $logBoxGroup.Text='Latest Report'; $logBoxGroup.Location=New-Object System.Drawing.Point(20,805); $logBoxGroup.Size=New-Object System.Drawing.Size(995,110); $logBoxGroup.Anchor='Top,Bottom,Left,Right'; $form.Controls.Add($logBoxGroup)
 $script:LogBox=New-Object System.Windows.Forms.TextBox; $script:LogBox.Multiline=$true; $script:LogBox.ReadOnly=$true; $script:LogBox.ScrollBars='Vertical'; $script:LogBox.Location=New-Object System.Drawing.Point(20,25); $script:LogBox.Size=New-Object System.Drawing.Size(950,72); $script:LogBox.Anchor='Top,Bottom,Left,Right'; $script:LogBox.RightToLeft='No'; $script:LogBox.Font=New-Object System.Drawing.Font('Consolas',9); $logBoxGroup.Controls.Add($script:LogBox)
+
+function Set-ModernTheme($Control) {
+    foreach ($child in $Control.Controls) {
+        if ($child -is [System.Windows.Forms.GroupBox]) {
+            $child.BackColor = $surface
+            $child.ForeColor = $accentBlue
+            $child.Font = New-Object System.Drawing.Font('Segoe UI',9,[System.Drawing.FontStyle]::Bold)
+            $child.FlatStyle = 'Flat'
+        }
+        elseif ($child -is [System.Windows.Forms.Button]) {
+            $child.FlatStyle = 'Flat'
+            $child.BackColor = $raisedSurface
+            $child.ForeColor = $textColor
+            $child.FlatAppearance.BorderSize = 1
+            $child.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(46,67,98)
+            $child.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(38,57,83)
+        }
+        elseif ($child -is [System.Windows.Forms.TextBox]) {
+            $child.BackColor = [System.Drawing.Color]::FromArgb(12,20,34)
+            $child.ForeColor = $textColor
+            $child.BorderStyle = 'FixedSingle'
+        }
+        elseif ($child -is [System.Windows.Forms.CheckBox] -or $child -is [System.Windows.Forms.RadioButton]) {
+            $child.BackColor = $surface
+            $child.ForeColor = $textColor
+        }
+        elseif ($child -is [System.Windows.Forms.Label]) {
+            if ($child -ne $script:MainStateLabel) { $child.BackColor = [System.Drawing.Color]::Transparent }
+            if ($child.ForeColor.ToArgb() -eq [System.Drawing.SystemColors]::ControlText.ToArgb()) { $child.ForeColor = $textColor }
+        }
+        elseif ($child -is [System.Windows.Forms.FlowLayoutPanel]) {
+            $child.BackColor = $form.BackColor
+        }
+        if ($child.Controls.Count -gt 0) { Set-ModernTheme $child }
+    }
+}
+Set-ModernTheme $form
+
+$startBtn.BackColor = $accent
+$startBtn.ForeColor = [System.Drawing.Color]::FromArgb(7,27,39)
+$startBtn.Font = New-Object System.Drawing.Font('Segoe UI',10,[System.Drawing.FontStyle]::Bold)
+$startBtn.FlatAppearance.BorderSize = 0
+$startBtn.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(103,235,218)
+$startBtn.FlatAppearance.MouseDownBackColor = [System.Drawing.Color]::FromArgb(44,178,172)
+$removeBtn.ForeColor = [System.Drawing.Color]::FromArgb(255,161,170)
+$script:ScanBar.ForeColor = $accent
+$script:DownBar.ForeColor = $accentBlue
+$script:ScanPercent.ForeColor = $accent
+$script:DownPercent.ForeColor = $accentBlue
+$script:ScanCurrentValue.ForeColor = $textColor
+$script:DownCurrentValue.ForeColor = $textColor
+$script:LogBox.BackColor = [System.Drawing.Color]::FromArgb(12,20,34)
+$script:LogBox.ForeColor = [System.Drawing.Color]::FromArgb(177,196,219)
 
 $newBtn.Add_Click({ try { Create-NewProject } catch { Show-Warning ($_ | Out-String) } })
 $openBtn.Add_Click({ try { Open-ExistingProject } catch { Show-Warning ($_ | Out-String) } })

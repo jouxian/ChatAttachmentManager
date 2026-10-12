@@ -37,6 +37,8 @@ Thumbs.db
 
 # Native launcher build artifacts
 Launcher/payload/
+Launcher/rsrc_windows_*.syso
+Launcher/winres/ChatAttachmentManager.png
 dist/
 *.exe
 *.part.meta.json
